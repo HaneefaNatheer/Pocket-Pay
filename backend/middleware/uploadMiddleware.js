@@ -1,5 +1,6 @@
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const { AppError } = require('./errorHandler');
 
 const storage = multer.diskStorage({
@@ -12,6 +13,10 @@ const storage = multer.diskStorage({
       uploadPath = 'uploads/cv';
     } else if (file.fieldname === 'logo' || file.fieldname === 'company_logo') {
       uploadPath = 'uploads/logos';
+    }
+
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
     }
 
     cb(null, uploadPath);

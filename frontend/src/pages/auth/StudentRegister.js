@@ -231,26 +231,34 @@ const StudentRegister = () => {
       if (profilePicture) {
         const fd = new FormData();
         fd.append('profile_image', profilePicture);
-        await api.post('/students/upload-picture', fd);
+        console.log('[Profile] Uploading picture...');
+        const picRes = await api.post('/students/upload-picture', fd);
+        console.log('[Profile] Picture uploaded:', picRes.data);
       }
 
       if (cvFile) {
         const fd = new FormData();
         fd.append('cv', cvFile);
+        console.log('[Profile] Uploading CV...');
         await api.post('/students/upload-cv', fd);
+        console.log('[Profile] CV uploaded');
       }
 
+      console.log('[Profile] Updating profile...');
       await api.put('/students/profile', {
-        bio: profileData.bio,
+        bio: profileData.bio || '',
         preferred_salary_min: preferredSalaryMin || null,
         preferred_salary_max: preferredSalaryMax || null,
         preferred_location: preferredLocation || null,
       });
+      console.log('[Profile] Profile updated');
 
       for (const skill of profileData.skills) {
         try {
           await api.post('/students/skills', { skill_name: skill });
-        } catch {}
+        } catch (skillErr) {
+          console.log('[Profile] Skill add skipped:', skill, skillErr?.response?.data);
+        }
       }
 
       toast.success('Profile setup complete!');
@@ -258,7 +266,9 @@ const StudentRegister = () => {
       setUser(updated.data.data);
       setRegistered(true);
     } catch (err) {
-      toast.error('Failed to save profile. You can update later.');
+      console.error('[Profile] Save error:', err?.response?.data || err.message);
+      const msg = err?.response?.data?.message || err.message || 'Failed to save profile';
+      toast.error(msg + '. You can update later.');
       setRegistered(true);
     } finally {
       setLoading(false);

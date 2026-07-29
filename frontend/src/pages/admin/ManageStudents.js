@@ -20,9 +20,11 @@ import {
   BsPerson,
   BsBookmarkHeart,
   BsBriefcase,
+  BsTrash,
 } from 'react-icons/bs';
 import { toast } from 'react-toastify';
 import { Modal, Button, Form } from 'react-bootstrap';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const ITEMS_PER_PAGE = 10;
@@ -48,15 +50,37 @@ const ManageStudents = () => {
   const [profileStudent, setProfileStudent] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     fetchStudents();
   }, []);
 
+  const normalizeStudent = (s) => ({
+    id: s.id,
+    user_id: s.user_id,
+    name: s.user?.name || s.name || 'Unknown',
+    email: s.user?.email || s.email || '',
+    is_active: s.user?.is_active !== false,
+    blocked: s.user?.is_active === false,
+    phone: s.user?.phone || s.phone,
+    profile_picture: s.user?.profile_picture || s.profile_picture,
+    university: s.university,
+    degree: s.degree,
+    address: s.address,
+    createdAt: s.createdAt,
+    skills: s.skills || [],
+    timetable: s.timetable || [],
+    bio: s.bio || '',
+  });
+
   const fetchStudents = async () => {
     try {
       const res = await adminService.getStudents();
-      setStudents(res.data?.data || res.data || []);
+      const raw = res.data?.data || res.data || [];
+      setStudents(Array.isArray(raw) ? raw.map(normalizeStudent) : []);
     } catch (err) {
       toast.error('Failed to load students.');
     } finally {
@@ -66,7 +90,7 @@ const ManageStudents = () => {
 
   const filteredStudents = useMemo(() => {
     let result = [...students];
-    if (statusFilter === 'active') result = result.filter((s) => !s.blocked);
+    if (statusFilter === 'active') result = result.filter((s) => s.is_active);
     else if (statusFilter === 'blocked') result = result.filter((s) => s.blocked);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -87,7 +111,7 @@ const ManageStudents = () => {
     if (selectedIds.length === paginatedStudents.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(paginatedStudents.map((s) => s._id));
+      setSelectedIds(paginatedStudents.map((s) => s.id));
     }
   };
 
@@ -98,17 +122,17 @@ const ManageStudents = () => {
   };
 
   const handleBlockToggle = async (student) => {
-    setActionLoading(student._id);
+    setActionLoading(student.id);
     try {
       if (student.blocked) {
-        await adminService.unblockUser(student._id);
+        await adminService.unblockUser(student.user_id);
         toast.success(`${student.name} has been unblocked.`);
       } else {
-        await adminService.blockUser(student._id);
+        await adminService.blockUser(student.user_id);
         toast.success(`${student.name} has been blocked.`);
       }
       setStudents((prev) =>
-        prev.map((s) => (s._id === student._id ? { ...s, blocked: !s.blocked } : s))
+        prev.map((s) => (s.id === student.id ? { ...s, blocked: !s.blocked, is_active: s.blocked } : s))
       );
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Action failed.');
@@ -131,8 +155,43 @@ const ManageStudents = () => {
     }
   };
 
-  const handleExport = () => {
-    toast.info('Export feature coming soon.');
+  const handleExport = async () => {
+    try {
+      const res = await adminService.exportData('students');
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'students.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Students CSV downloaded.');
+    } catch (err) {
+      toast.error('Failed to export students.');
+    }
+  };
+
+  const openDeleteConfirm = (student) => {
+    setDeleteTarget(student);
+    setShowDeleteModal(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await adminService.deleteStudent(deleteTarget.id);
+      toast.success(`${deleteTarget.name} has been deleted.`);
+      setStudents((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+      setShowDeleteModal(false);
+      setDeleteTarget(null);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to delete student.');
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   if (loading) {
@@ -234,20 +293,20 @@ const ManageStudents = () => {
                 </thead>
                 <tbody>
                   {paginatedStudents.map((student) => (
-                    <tr key={student._id}>
+                    <tr key={student.id}>
                       <td>
                         <input
                           type="checkbox"
                           className="form-check-input"
-                          checked={selectedIds.includes(student._id)}
-                          onChange={() => toggleSelect(student._id)}
+                          checked={selectedIds.includes(student.id)}
+                          onChange={() => toggleSelect(student.id)}
                         />
                       </td>
                       <td>
                         <div className="d-flex align-items-center">
-                          {student.profileImage || student.avatar ? (
+                          {student.profile_picture ? (
                             <img
-                              src={student.profileImage || student.avatar}
+                              src={`http://localhost:5000/${student.profile_picture}`}
                               alt={student.name}
                               className="rounded-circle me-2"
                               style={{ width: 36, height: 36, objectFit: 'cover' }}
@@ -286,15 +345,22 @@ const ManageStudents = () => {
                             className={`btn ${student.blocked ? 'btn-outline-success' : 'btn-outline-danger'}`}
                             title={student.blocked ? 'Unblock' : 'Block'}
                             onClick={() => handleBlockToggle(student)}
-                            disabled={actionLoading === student._id}
+                            disabled={actionLoading === student.id}
                           >
-                            {actionLoading === student._id ? (
+                            {actionLoading === student.id ? (
                               <span className="spinner-border spinner-border-sm"></span>
                             ) : student.blocked ? (
                               <BsShieldCheck />
                             ) : (
                               <BsShieldLock />
                             )}
+                          </button>
+                          <button
+                            className="btn btn-outline-danger"
+                            title="Delete Student"
+                            onClick={() => openDeleteConfirm(student)}
+                          >
+                            <BsTrash />
                           </button>
                         </div>
                       </td>
@@ -351,9 +417,9 @@ const ManageStudents = () => {
           ) : profileStudent ? (
             <div className="row g-4">
               <div className="col-12 text-center">
-                {profileStudent.profileImage || profileStudent.avatar ? (
+                {profileStudent.profile_picture ? (
                   <img
-                    src={profileStudent.profileImage || profileStudent.avatar}
+                    src={`http://localhost:5000/${profileStudent.profile_picture}`}
                     alt={profileStudent.name}
                     className="rounded-circle mb-3"
                     style={{ width: 80, height: 80, objectFit: 'cover' }}
@@ -447,6 +513,17 @@ const ManageStudents = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      <ConfirmModal
+        show={showDeleteModal}
+        onHide={() => { setShowDeleteModal(false); setDeleteTarget(null); }}
+        onConfirm={handleDelete}
+        title="Delete Student"
+        message={`Are you sure you want to permanently delete "${deleteTarget?.name}"? This will also remove their user account and all associated data.`}
+        variant="danger"
+        loading={deleteLoading}
+        confirmText="Delete"
+      />
     </div>
   );
 };

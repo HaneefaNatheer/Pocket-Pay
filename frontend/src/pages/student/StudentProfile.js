@@ -13,6 +13,7 @@ const StudentProfile = () => {
   const [uploadingPic, setUploadingPic] = useState(false);
   const fileRef = useRef(null);
   const [picTimestamp, setPicTimestamp] = useState(Date.now());
+  const [loadError, setLoadError] = useState('');
 
   const [form, setForm] = useState({
     name: '',
@@ -37,9 +38,14 @@ const StudentProfile = () => {
   const loadProfile = async () => {
     try {
       const res = await api.get('/students/profile');
+      console.log('[Profile] API response:', res.data);
       const data = res.data?.data || res.data;
+      if (!data || !data.id) {
+        throw new Error('Invalid profile data received');
+      }
       setProfile(data);
       const u = data.user || {};
+      console.log('[Profile] Setting form with:', { ...data, user: u });
       setForm({
         name: u.name || '',
         phone: u.phone || '',
@@ -55,8 +61,12 @@ const StudentProfile = () => {
         preferred_salary_max: data.preferred_salary_max || '',
         preferred_location: data.preferred_location || '',
       });
-    } catch {
-      toast.error('Failed to load profile');
+      setLoadError('');
+    } catch (err) {
+      console.error('[Profile] Load error:', err?.response?.data || err.message);
+      const msg = err?.response?.data?.message || err.message || 'Failed to load profile';
+      setLoadError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -106,14 +116,18 @@ const StudentProfile = () => {
     fd.append('profile_image', file);
     setUploadingPic(true);
     try {
-      await api.post('/students/upload-picture', fd);
+      console.log('[ProfilePic] Uploading...');
+      const res = await api.post('/students/upload-picture', fd);
+      console.log('[ProfilePic] Upload success:', res.data);
       setPicTimestamp(Date.now());
       toast.success('Profile picture updated!');
       await loadProfile();
       const me = await api.get('/auth/me');
       setUser(me.data.data);
-    } catch {
-      toast.error('Failed to upload picture');
+    } catch (err) {
+      console.error('[ProfilePic] Upload error:', err?.response?.data || err.message);
+      const msg = err?.response?.data?.message || err.message || 'Failed to upload picture';
+      toast.error(msg);
     } finally {
       setUploadingPic(false);
     }
@@ -137,6 +151,26 @@ const StudentProfile = () => {
             <div className="card border-0 shadow-sm">
               <div className="card-body text-center py-5">
                 <div className="spinner-border text-primary" />
+                <p className="text-muted mt-2 mb-0">Loading profile...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="container py-4">
+        <div className="row justify-content-center">
+          <div className="col-lg-8">
+            <div className="card border-0 shadow-sm">
+              <div className="card-body text-center py-5">
+                <p className="text-danger mb-3">{loadError}</p>
+                <button className="btn btn-primary px-4" onClick={() => { setLoading(true); setLoadError(''); loadProfile(); }}>
+                  Retry
+                </button>
               </div>
             </div>
           </div>

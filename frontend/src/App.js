@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
 // Layout
@@ -57,6 +57,40 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   if (loading) return <div className="d-flex justify-content-center align-items-center vh-100"><div className="spinner-border text-primary"></div></div>;
   if (!user) return <Navigate to="/login" />;
   if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/" />;
+  return children;
+};
+
+const GuestRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const [showModal, setShowModal] = useState(false);
+  if (loading) return <div className="d-flex justify-content-center align-items-center vh-100"><div className="spinner-border text-primary"></div></div>;
+  if (user && !showModal) {
+    setShowModal(true);
+    return null;
+  }
+  if (showModal) {
+    const dashboard = user.role === 'student' ? '/student/dashboard' : user.role === 'employer' ? '/employer/dashboard' : '/admin/dashboard';
+    const roleName = user.role === 'student' ? 'Student' : user.role === 'employer' ? 'Employer' : 'Admin';
+    return (
+      <div className="modal d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content border-0 shadow-lg" style={{ borderRadius: 16 }}>
+            <div className="modal-body text-center p-4">
+              <div className="mb-3" style={{ fontSize: '3rem' }}>🔒</div>
+              <h5 className="fw-bold mb-2">Already Logged In</h5>
+              <p className="text-muted mb-1">You are currently logged in as <strong>{roleName}</strong>.</p>
+              <p className="text-muted mb-4">Please logout first before creating or accessing a different account.</p>
+              <div className="d-flex gap-3 justify-content-center">
+                <button className="btn btn-outline-secondary px-4" onClick={() => navigate(dashboard)}>Go to Dashboard</button>
+                <button className="btn btn-primary px-4" onClick={() => { localStorage.removeItem('token'); window.location.href = '/register'; }}>Logout & Continue</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return children;
 };
 
@@ -134,12 +168,12 @@ function AppContent() {
           <Route path="/jobs/:id" element={<JobDetails />} />
 
           {/* Auth Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/login/employer" element={<LoginPage />} />
-          <Route path="/login/admin" element={<AdminLogin />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/register/student" element={<StudentRegister />} />
-          <Route path="/register/employer" element={<EmployerRegister />} />
+          <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+          <Route path="/login/employer" element={<GuestRoute><LoginPage /></GuestRoute>} />
+          <Route path="/login/admin" element={<GuestRoute><AdminLogin /></GuestRoute>} />
+          <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
+          <Route path="/register/student" element={<GuestRoute><StudentRegister /></GuestRoute>} />
+          <Route path="/register/employer" element={<GuestRoute><EmployerRegister /></GuestRoute>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/verify-email/:token" element={<VerifyEmail />} />

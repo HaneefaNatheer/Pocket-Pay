@@ -13,6 +13,9 @@ export const adminService = {
   updateReport: (id, data) => api.put(`/admin/reports/${id}`, data),
   getReviews: (params) => api.get('/admin/reviews', { params }),
   toggleReview: (id) => api.put(`/admin/reviews/${id}/visibility`),
+  deleteStudent: (id) => api.delete(`/admin/student/${id}`),
+  deleteEmployer: (id) => api.delete(`/admin/employer/${id}`),
+  exportData: (type) => api.get(`/admin/export/${type}`, { responseType: 'blob' }),
   getLogs: () => api.get('/admin/logs'),
   getAnalytics: () => api.get('/analytics/overview'),
 };

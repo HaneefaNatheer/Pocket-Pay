@@ -13,6 +13,10 @@ import {
   BsBriefcase,
   BsChatLeftText,
   BsClock,
+  BsDownload,
+  BsCalendarDay,
+  BsCalendarMonth,
+  BsCalendar,
 } from 'react-icons/bs';
 import { toast } from 'react-toastify';
 import { Modal, Button, Badge, Form } from 'react-bootstrap';
@@ -143,6 +147,25 @@ const ManageReports = () => {
     return str.length > len ? str.substring(0, len) + '...' : str;
   };
 
+  const handleDownloadReport = async (type) => {
+    const labels = { 'report-daily': 'Daily', 'report-monthly': 'Monthly', 'report-yearly': 'Yearly' };
+    try {
+      const res = await adminService.exportData(type);
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${type}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success(`${labels[type] || type} report downloaded.`);
+    } catch (err) {
+      toast.error(`Failed to download ${labels[type] || type} report.`);
+    }
+  };
+
   if (loading && reports.length === 0) {
     return (
       <div className="container py-4">
@@ -171,6 +194,28 @@ const ManageReports = () => {
         <div>
           <h4 className="fw-bold mb-0">Manage Reports</h4>
           <small className="text-muted">{counts.all || reports.length} total reports</small>
+        </div>
+      </div>
+
+      <div className="card border-0 shadow-sm mb-4">
+        <div className="card-body">
+          <div className="d-flex flex-wrap align-items-center justify-content-between">
+            <div>
+              <h6 className="fw-bold mb-1"><BsDownload className="me-2" />Generated Reports</h6>
+              <small className="text-muted">Download system analytics by time period</small>
+            </div>
+            <div className="d-flex gap-2 mt-2 mt-sm-0">
+              <button className="btn btn-outline-primary btn-sm" onClick={() => handleDownloadReport('report-daily')}>
+                <BsCalendarDay className="me-1" /> Daily Report
+              </button>
+              <button className="btn btn-outline-primary btn-sm" onClick={() => handleDownloadReport('report-monthly')}>
+                <BsCalendarMonth className="me-1" /> Monthly Report
+              </button>
+              <button className="btn btn-outline-primary btn-sm" onClick={() => handleDownloadReport('report-yearly')}>
+                <BsCalendar className="me-1" /> Yearly Report
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

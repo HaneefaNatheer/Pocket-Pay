@@ -23,6 +23,8 @@ import {
   BsCheckCircle,
   BsXCircle,
   BsBoxArrowUpRight,
+  BsTrash,
+  BsDownload,
 } from 'react-icons/bs';
 import { toast } from 'react-toastify';
 import { Modal, Button, Badge } from 'react-bootstrap';
@@ -56,6 +58,31 @@ const ManageEmployers = () => {
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   const [actionLoading, setActionLoading] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const normalizeEmployer = (e) => ({
+    id: e.id,
+    user_id: e.user_id,
+    company_name: e.company_name || e.companyName || 'N/A',
+    company_logo: e.company_logo || e.companyLogo || e.logo,
+    contact_name: e.contact_name || e.contactName || e.user?.name || 'N/A',
+    name: e.user?.name || e.name || 'Unknown',
+    email: e.user?.email || e.email || '',
+    is_active: e.user?.is_active !== false,
+    blocked: e.user?.is_active === false,
+    is_verified: e.is_verified === true,
+    phone: e.user?.phone || e.phone,
+    address: e.address,
+    website: e.website,
+    industry: e.industry,
+    company_size: e.company_size || e.companySize || e.size,
+    description: e.description,
+    jobs_posted: e.total_jobs_posted || e.jobsPosted || e.jobCount || 0,
+    createdAt: e.createdAt,
+    jobs: e.jobs || e.postedJobs || [],
+  });
 
   useEffect(() => {
     fetchEmployers();
@@ -72,7 +99,8 @@ const ManageEmployers = () => {
       if (statusFilter !== 'all') params.status = statusFilter;
       const res = await adminService.getEmployers(params);
       const data = res.data?.data || res.data || {};
-      setEmployers(Array.isArray(data) ? data : data.employers || data.results || []);
+      const raw = Array.isArray(data) ? data : data.employers || data.results || [];
+      setEmployers(raw.map(normalizeEmployer));
       setTotalPages(data.totalPages || data.pages || Math.ceil((data.total || 0) / ITEMS_PER_PAGE) || 1);
     } catch (err) {
       toast.error('Failed to load employers.');
@@ -90,9 +118,9 @@ const ManageEmployers = () => {
     setShowProfileModal(true);
     setLoadingProfile(true);
     try {
-      const res = await adminService.getEmployers({ id: employer._id });
+      const res = await adminService.getEmployers({ id: employer.id });
       const data = res.data?.data || res.data || employer;
-      setProfileEmployer(data);
+      setProfileEmployer(normalizeEmployer(Array.isArray(data) ? data[0] : data));
     } catch {
       setProfileEmployer(employer);
     } finally {
@@ -101,28 +129,28 @@ const ManageEmployers = () => {
   };
 
   const openVerifyConfirm = (employer) => {
-    const isVerified = employer.verified || employer.isVerified;
+    const isVerified = employer.is_verified;
     setConfirmTitle(isVerified ? 'Unverify Employer' : 'Verify Employer');
     setConfirmMessage(
       isVerified
-        ? `Are you sure you want to unverify "${employer.companyName || employer.name}"?`
-        : `Are you sure you want to verify "${employer.companyName || employer.name}"?`
+        ? `Are you sure you want to unverify "${employer.company_name}"?`
+        : `Are you sure you want to verify "${employer.company_name}"?`
     );
     setConfirmVariant(isVerified ? 'warning' : 'success');
     setConfirmAction(() => async () => {
       setConfirmLoading(true);
       try {
-        await adminService.verifyEmployer(employer._id);
+        await adminService.verifyEmployer(employer.id);
         toast.success(`Employer ${isVerified ? 'unverified' : 'verified'} successfully.`);
         setEmployers((prev) =>
           prev.map((e) =>
-            e._id === employer._id
-              ? { ...e, verified: !isVerified, isVerified: !isVerified }
+            e.id === employer.id
+              ? { ...e, is_verified: !isVerified }
               : e
           )
         );
-        if (profileEmployer?._id === employer._id) {
-          setProfileEmployer((prev) => prev ? { ...prev, verified: !isVerified, isVerified: !isVerified } : prev);
+        if (profileEmployer?.id === employer.id) {
+          setProfileEmployer((prev) => prev ? { ...prev, is_verified: !isVerified } : prev);
         }
         setShowConfirmModal(false);
       } catch (err) {
@@ -139,26 +167,26 @@ const ManageEmployers = () => {
     setConfirmTitle(isBlocked ? 'Unblock Employer' : 'Block Employer');
     setConfirmMessage(
       isBlocked
-        ? `Are you sure you want to unblock "${employer.companyName || employer.name}"?`
-        : `Are you sure you want to block "${employer.companyName || employer.name}"? They will no longer be able to access the platform.`
+        ? `Are you sure you want to unblock "${employer.company_name}"?`
+        : `Are you sure you want to block "${employer.company_name}"? They will no longer be able to access the platform.`
     );
     setConfirmVariant(isBlocked ? 'success' : 'danger');
     setConfirmAction(() => async () => {
       setConfirmLoading(true);
       try {
         if (isBlocked) {
-          await adminService.unblockUser(employer._id);
+          await adminService.unblockUser(employer.user_id);
         } else {
-          await adminService.blockUser(employer._id);
+          await adminService.blockUser(employer.user_id);
         }
         toast.success(`Employer ${isBlocked ? 'unblocked' : 'blocked'} successfully.`);
         setEmployers((prev) =>
           prev.map((e) =>
-            e._id === employer._id ? { ...e, blocked: !isBlocked } : e
+            e.id === employer.id ? { ...e, blocked: !isBlocked, is_active: isBlocked } : e
           )
         );
-        if (profileEmployer?._id === employer._id) {
-          setProfileEmployer((prev) => prev ? { ...prev, blocked: !isBlocked } : prev);
+        if (profileEmployer?.id === employer.id) {
+          setProfileEmployer((prev) => prev ? { ...prev, blocked: !isBlocked, is_active: isBlocked } : prev);
         }
         setShowConfirmModal(false);
       } catch (err) {
@@ -168,6 +196,45 @@ const ManageEmployers = () => {
       }
     });
     setShowConfirmModal(true);
+  };
+
+  const openDeleteConfirm = (employer) => {
+    setDeleteTarget(employer);
+    setShowDeleteModal(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await adminService.deleteEmployer(deleteTarget.id);
+      toast.success(`${deleteTarget.company_name} has been deleted.`);
+      setEmployers((prev) => prev.filter((e) => e.id !== deleteTarget.id));
+      setShowDeleteModal(false);
+      setDeleteTarget(null);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to delete employer.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const res = await adminService.exportData('employers');
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'employers.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Employers CSV downloaded.');
+    } catch (err) {
+      toast.error('Failed to export employers.');
+    }
   };
 
   if (loading && employers.length === 0) {
@@ -203,6 +270,9 @@ const ManageEmployers = () => {
           <h4 className="fw-bold mb-0">Manage Employers</h4>
           <small className="text-muted">{employers.length} total employers</small>
         </div>
+        <button className="btn btn-outline-secondary btn-sm" onClick={handleExport}>
+          <BsDownload className="me-1" /> Export
+        </button>
       </div>
 
       <div className="d-flex flex-wrap gap-2 mb-3">
@@ -251,15 +321,15 @@ const ManageEmployers = () => {
                 </thead>
                 <tbody>
                   {filteredEmployers.map((employer) => {
-                    const isVerified = employer.verified || employer.isVerified;
+                    const isVerified = employer.is_verified;
                     return (
-                      <tr key={employer._id}>
+                      <tr key={employer.id}>
                         <td>
                           <div className="d-flex align-items-center">
-                            {employer.companyLogo || employer.logo ? (
+                            {employer.company_logo ? (
                               <img
-                                src={employer.companyLogo || employer.logo}
-                                alt={employer.companyName || employer.name}
+                                src={`http://localhost:5000/${employer.company_logo}`}
+                                alt={employer.company_name}
                                 className="rounded me-2"
                                 style={{ width: 36, height: 36, objectFit: 'cover' }}
                               />
@@ -268,13 +338,13 @@ const ManageEmployers = () => {
                                 className="rounded d-flex align-items-center justify-content-center me-2 fw-bold text-white small"
                                 style={{ width: 36, height: 36, backgroundColor: '#198754', fontSize: 13 }}
                               >
-                                {getInitials(employer.companyName || employer.name)}
+                                {getInitials(employer.company_name)}
                               </div>
                             )}
-                            <span className="fw-semibold">{employer.companyName || employer.name || 'N/A'}</span>
+                            <span className="fw-semibold">{employer.company_name}</span>
                           </div>
                         </td>
-                        <td>{employer.contactName || employer.name || 'N/A'}</td>
+                        <td>{employer.contact_name || employer.name || 'N/A'}</td>
                         <td className="text-muted small">{employer.email}</td>
                         <td className="text-center">
                           {isVerified ? (
@@ -284,7 +354,7 @@ const ManageEmployers = () => {
                           )}
                         </td>
                         <td className="text-center">
-                          <Badge bg="primary" pill>{employer.jobsPosted || employer.jobCount || 0}</Badge>
+                          <Badge bg="primary" pill>{employer.jobs_posted}</Badge>
                         </td>
                         <td>
                           <span className={employer.blocked ? 'badge bg-danger' : 'badge bg-success'}>
@@ -307,7 +377,7 @@ const ManageEmployers = () => {
                               className={`btn ${isVerified ? 'btn-outline-warning' : 'btn-outline-success'}`}
                               title={isVerified ? 'Unverify' : 'Verify'}
                               onClick={() => openVerifyConfirm(employer)}
-                              disabled={actionLoading === employer._id}
+                              disabled={actionLoading === employer.id}
                             >
                               {isVerified ? <BsShieldSlash /> : <BsShieldCheck />}
                             </button>
@@ -315,9 +385,16 @@ const ManageEmployers = () => {
                               className={`btn ${employer.blocked ? 'btn-outline-success' : 'btn-outline-danger'}`}
                               title={employer.blocked ? 'Unblock' : 'Block'}
                               onClick={() => openBlockConfirm(employer)}
-                              disabled={actionLoading === employer._id}
+                              disabled={actionLoading === employer.id}
                             >
                               {employer.blocked ? <BsShieldCheck /> : <BsShieldLock />}
+                            </button>
+                            <button
+                              className="btn btn-outline-danger"
+                              title="Delete Employer"
+                              onClick={() => openDeleteConfirm(employer)}
+                            >
+                              <BsTrash />
                             </button>
                           </div>
                         </td>
@@ -499,6 +576,17 @@ const ManageEmployers = () => {
         variant={confirmVariant}
         loading={confirmLoading}
         confirmText="Confirm"
+      />
+
+      <ConfirmModal
+        show={showDeleteModal}
+        onHide={() => { setShowDeleteModal(false); setDeleteTarget(null); }}
+        onConfirm={handleDelete}
+        title="Delete Employer"
+        message={`Are you sure you want to permanently delete "${deleteTarget?.company_name}"? This will also remove their user account, jobs, and all associated data.`}
+        variant="danger"
+        loading={deleteLoading}
+        confirmText="Delete"
       />
     </div>
   );

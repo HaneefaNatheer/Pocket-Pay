@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import heroVideo from '../assets/images/pocket-pay-video.mp4';
 import {
   FaRobot,
   FaMapMarkerAlt,
@@ -171,6 +172,9 @@ export default function Home() {
     <div className="home-page">
       {/* Hero Section */}
       <section className="hero-section">
+        <video className="hero-video-bg" autoPlay muted loop playsInline>
+          <source src={heroVideo} type="video/mp4" />
+        </video>
         <div className="hero-particles">
           {[...Array(15)].map((_, i) => (
             <div key={i} className="particle" style={{

@@ -8,13 +8,28 @@ const Employer = require('../models/Employer');
 
 const getProfile = async (req, res) => {
   try {
-    const student = await Student.findOne({
+    let student = await Student.findOne({
       where: { user_id: req.user.id },
       include: [{ model: User, as: 'user', attributes: { exclude: ['password', 'verification_token', 'reset_token', 'reset_token_expire'] } }],
     });
 
     if (!student) {
-      return res.status(404).json({ success: false, message: 'Student profile not found' });
+      student = await Student.create({
+        user_id: req.user.id,
+        nic: null,
+        permanent_address: null,
+        current_address: null,
+        address: null,
+        university: null,
+        degree: null,
+        year_of_study: null,
+        date_of_birth: null,
+      });
+
+      student = await Student.findOne({
+        where: { user_id: req.user.id },
+        include: [{ model: User, as: 'user', attributes: { exclude: ['password', 'verification_token', 'reset_token', 'reset_token_expire'] } }],
+      });
     }
 
     return res.status(200).json({ success: true, message: 'Profile retrieved', data: student });

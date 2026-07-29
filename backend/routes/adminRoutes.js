@@ -14,6 +14,9 @@ const {
   updateReportStatus,
   getAllReviews,
   toggleReviewVisibility,
+  deleteStudent,
+  deleteEmployer,
+  exportData,
   getSystemLogs,
 } = require('../controllers/adminController');
 
@@ -31,6 +34,9 @@ router.get('/reports', getAllReports);
 router.put('/reports/:id', updateReportStatus);
 router.get('/reviews', getAllReviews);
 router.put('/reviews/:id/visibility', toggleReviewVisibility);
+router.delete('/student/:id', deleteStudent);
+router.delete('/employer/:id', deleteEmployer);
+router.get('/export/:type', exportData);
 router.get('/logs', getSystemLogs);
 
 module.exports = router;

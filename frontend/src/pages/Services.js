@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaUserGraduate, FaBriefcase, FaArrowRight, FaRocket } from 'react-icons/fa';
+import { FaUserGraduate, FaBriefcase, FaArrowRight, FaRocket, FaTimes } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
 
 function useScrollAnimation() {
   const ref = useRef(null);
@@ -44,12 +45,55 @@ function AnimSection({ children, className = '', delay = 0, animation = 'fade-up
 
 export default function Services() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [showModal, setShowModal] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('');
+
+  const handleExplore = (role) => {
+    if (!user) {
+      setSelectedRole(role);
+      setShowModal(true);
+    } else {
+      navigate(`/services/${role}`);
+    }
+  };
 
   return (
     <div className="home-page">
+      {/* Login Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="login-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setShowModal(false)}>
+              <FaTimes />
+            </button>
+            <div className="modal-icon">
+              {selectedRole === 'student' ? <FaUserGraduate size={40} /> : <FaBriefcase size={40} />}
+            </div>
+            <h4 className="fw-bold mb-2">Login Required</h4>
+            <p className="text-muted mb-4">
+              Please log in to explore {selectedRole === 'student' ? 'Student' : 'Employer'} features.
+            </p>
+            <div className="d-flex gap-3 justify-content-center">
+              <button
+                className="btn btn-primary-gradient px-4"
+                onClick={() => navigate('/login')}
+              >
+                Login Now
+              </button>
+              <button
+                className="btn btn-outline-secondary px-4"
+                onClick={() => navigate(`/register/${selectedRole}`)}
+              >
+                Register
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* HERO */}
-      <section className="hero-section" style={{ minHeight: '50vh' }}>
+      <section className="hero-section hero-with-bg" style={{ minHeight: '50vh' }}>
         <div className="hero-particles">
           {[...Array(12)].map((_, i) => (
             <div key={i} className="particle" style={{
@@ -104,7 +148,7 @@ export default function Services() {
                   </div>
                   <h4 className="fw-bold mb-2">Student Services</h4>
                   <p className="text-muted mb-4">Search, apply, and track jobs. Build your career while studying.</p>
-                  <button className="btn btn-primary-gradient px-4 py-2 rounded-pill fw-semibold" onClick={() => navigate('/services/student')}>
+                  <button className="btn btn-primary-gradient px-4 py-2 rounded-pill fw-semibold" onClick={() => handleExplore('student')}>
                     Explore Student Features <FaArrowRight className="ms-2" />
                   </button>
                 </div>
@@ -123,7 +167,7 @@ export default function Services() {
                   </div>
                   <h4 className="fw-bold mb-2">Employer Services</h4>
                   <p className="text-muted mb-4">Post jobs, review candidates, and hire talented students.</p>
-                  <button className="btn px-4 py-2 rounded-pill fw-semibold" style={{ background: '#2563eb', color: '#fff' }} onClick={() => navigate('/services/employer')}>
+                  <button className="btn px-4 py-2 rounded-pill fw-semibold" style={{ background: '#2563eb', color: '#fff' }} onClick={() => handleExplore('employer')}>
                     Explore Employer Features <FaArrowRight className="ms-2" />
                   </button>
                 </div>

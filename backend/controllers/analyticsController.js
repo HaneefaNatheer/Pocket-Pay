@@ -30,12 +30,12 @@ const getMonthlyGrowth = async (req, res) => {
 
     const monthlyData = await User.findAll({
       attributes: [
-        [fn('DATE_FORMAT', col('createdAt'), '%Y-%m'), 'month'],
+        [literal("strftime('%Y-%m', created_at)"), 'month'],
         [fn('COUNT', col('id')), 'count'],
       ],
       where: { createdAt: { [Op.gte]: twelveMonthsAgo } },
-      group: [fn('DATE_FORMAT', col('createdAt'), '%Y-%m')],
-      order: [[fn('DATE_FORMAT', col('createdAt'), '%Y-%m'), 'ASC']],
+      group: [literal("strftime('%Y-%m', created_at)")],
+      order: [literal("strftime('%Y-%m', created_at) ASC")],
       raw: true,
     });
 

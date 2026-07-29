@@ -21,12 +21,12 @@ const getDashboardStats = async (req, res) => {
 
     const monthlyData = await User.findAll({
       attributes: [
-        [sequelize.fn('DATE_FORMAT', sequelize.col('createdAt'), '%Y-%m'), 'month'],
+        [sequelize.literal("strftime('%Y-%m', created_at)"), 'month'],
         [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
       ],
       where: { createdAt: { [Op.gte]: sixMonthsAgo } },
-      group: [sequelize.fn('DATE_FORMAT', sequelize.col('createdAt'), '%Y-%m')],
-      order: [[sequelize.fn('DATE_FORMAT', sequelize.col('createdAt'), '%Y-%m'), 'ASC']],
+      group: [sequelize.literal("strftime('%Y-%m', created_at)")],
+      order: [sequelize.literal("strftime('%Y-%m', created_at) ASC")],
       raw: true,
     });
 
@@ -309,6 +309,137 @@ const toggleReviewVisibility = async (req, res) => {
   }
 };
 
+const deleteStudent = async (req, res) => {
+  try {
+    const student = await Student.findByPk(req.params.id, {
+      include: [{ model: User, as: 'user' }],
+    });
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    await student.destroy();
+
+    if (student.user) {
+      await student.user.destroy();
+    }
+
+    return res.status(200).json({ success: true, message: 'Student deleted successfully' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const deleteEmployer = async (req, res) => {
+  try {
+    const employer = await Employer.findByPk(req.params.id, {
+      include: [{ model: User, as: 'user' }],
+    });
+    if (!employer) {
+      return res.status(404).json({ success: false, message: 'Employer not found' });
+    }
+
+    await employer.destroy();
+
+    if (employer.user) {
+      await employer.user.destroy();
+    }
+
+    return res.status(200).json({ success: true, message: 'Employer deleted successfully' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const exportData = async (req, res) => {
+  try {
+    const { type } = req.params;
+    const esc = (v) => (v != null ? `"${String(v).replace(/"/g, '""')}"` : '');
+    let csv = '';
+    let filename = '';
+
+    switch (type) {
+      case 'students': {
+        const students = await Student.findAll({
+          include: [{ model: User, as: 'user', attributes: { exclude: ['password', 'verification_token', 'reset_token', 'reset_token_expire'] } }],
+          order: [['createdAt', 'DESC']],
+        });
+        csv = 'ID,Name,Email,Phone,University,Degree,Year of Study,NIC,Address,Status,Joined\n';
+        students.forEach((s) => {
+          const u = s.user || {};
+          csv += `${s.id},${esc(u.name)},${esc(u.email)},${esc(u.phone)},${esc(s.university)},${esc(s.degree)},${s.year_of_study || ''},${esc(s.nic)},${esc(s.address)},${u.is_active ? 'Active' : 'Blocked'},${s.createdAt || ''}\n`;
+        });
+        filename = 'students.csv';
+        break;
+      }
+      case 'employers': {
+        const employers = await Employer.findAll({
+          include: [{ model: User, as: 'user', attributes: { exclude: ['password', 'verification_token', 'reset_token', 'reset_token_expire'] } }],
+          order: [['createdAt', 'DESC']],
+        });
+        csv = 'ID,Company Name,Contact Name,Email,Phone,Industry,Website,Verified,Status,Joined\n';
+        employers.forEach((e) => {
+          const u = e.user || {};
+          csv += `${e.id},${esc(e.company_name)},${esc(u.name)},${esc(u.email)},${esc(u.phone)},${esc(e.industry)},${esc(e.website)},${e.is_verified ? 'Yes' : 'No'},${u.is_active ? 'Active' : 'Blocked'},${e.createdAt || ''}\n`;
+        });
+        filename = 'employers.csv';
+        break;
+      }
+      case 'report-daily': {
+        const start = new Date();
+        start.setUTCHours(0, 0, 0, 0);
+        const end = new Date();
+        end.setUTCHours(23, 59, 59, 999);
+        const newUsers = await User.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        const newStudents = await Student.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        const newEmployers = await Employer.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        const newJobs = await Job.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        const newApplications = await Application.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        csv = 'Report Type,Date,New Users,New Students,New Employers,New Jobs,New Applications\n';
+        csv += `Daily,${start.toISOString().slice(0, 10)},${newUsers},${newStudents},${newEmployers},${newJobs},${newApplications}\n`;
+        filename = 'daily-report.csv';
+        break;
+      }
+      case 'report-monthly': {
+        const now = new Date();
+        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+        const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+        const newUsers = await User.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        const newStudents = await Student.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        const newEmployers = await Employer.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        const newJobs = await Job.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        const newApplications = await Application.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        csv = 'Report Type,Month,Year,New Users,New Students,New Employers,New Jobs,New Applications\n';
+        csv += `Monthly,${now.getUTCMonth() + 1},${now.getUTCFullYear()},${newUsers},${newStudents},${newEmployers},${newJobs},${newApplications}\n`;
+        filename = 'monthly-report.csv';
+        break;
+      }
+      case 'report-yearly': {
+        const now = new Date();
+        const start = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+        const end = new Date(Date.UTC(now.getUTCFullYear(), 11, 31, 23, 59, 59, 999));
+        const newUsers = await User.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        const newStudents = await Student.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        const newEmployers = await Employer.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        const newJobs = await Job.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        const newApplications = await Application.count({ where: { createdAt: { [Op.between]: [start, end] } } });
+        csv = 'Report Type,Year,New Users,New Students,New Employers,New Jobs,New Applications\n';
+        csv += `Yearly,${now.getFullYear()},${newUsers},${newStudents},${newEmployers},${newJobs},${newApplications}\n`;
+        filename = 'yearly-report.csv';
+        break;
+      }
+      default:
+        return res.status(400).json({ success: false, message: 'Invalid export type' });
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.send(csv);
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 const getSystemLogs = async (req, res) => {
   try {
     const totalStudents = await Student.count();
@@ -357,5 +488,8 @@ module.exports = {
   updateReportStatus,
   getAllReviews,
   toggleReviewVisibility,
+  deleteStudent,
+  deleteEmployer,
+  exportData,
   getSystemLogs,
 };
