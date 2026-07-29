@@ -62,7 +62,7 @@ const labelStyle = {
 
 const StudentRegister = () => {
   const navigate = useNavigate();
-  const { register, login } = useAuth();
+  const { register, login, setUser } = useAuth();
   const fileInputRef = useRef(null);
   const cvInputRef = useRef(null);
 
@@ -254,6 +254,8 @@ const StudentRegister = () => {
       }
 
       toast.success('Profile setup complete!');
+      const updated = await api.get('/auth/me');
+      setUser(updated.data.data);
       setRegistered(true);
     } catch (err) {
       toast.error('Failed to save profile. You can update later.');

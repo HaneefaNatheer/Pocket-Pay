@@ -45,6 +45,10 @@ const updateProfile = async (req, res) => {
       await User.update({ phone: req.body.phone }, { where: { id: req.user.id } });
     }
 
+    if (req.body.name !== undefined) {
+      await User.update({ name: req.body.name }, { where: { id: req.user.id } });
+    }
+
     await employer.update(updates);
 
     return res.status(200).json({ success: true, message: 'Profile updated', data: employer });

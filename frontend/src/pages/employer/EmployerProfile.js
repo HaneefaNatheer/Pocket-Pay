@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { employerService } from '../../services/employerService';
-import { BsCamera, BsPencil, BsUpload, BsShieldCheck, BsExclamationTriangle } from 'react-icons/bs';
 import { toast } from 'react-toastify';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import { FaCamera, FaSave, FaTimes, FaCheck, FaIndustry, FaGlobe, FaPhone, FaEnvelope, FaMapMarkerAlt, FaBuilding, FaUserTie } from 'react-icons/fa';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
+
+const industries = ['IT', 'Education', 'Marketing', 'Retail', 'Delivery', 'Healthcare', 'Finance', 'Other'];
 
 const EmployerProfile = () => {
   const { user, setUser } = useAuth();
@@ -11,119 +12,117 @@ const EmployerProfile = () => {
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [uploadingDoc, setUploadingDoc] = useState(false);
-  const fileInputRef = useRef(null);
-  const docInputRef = useRef(null);
-  const [formData, setFormData] = useState({
-    companyName: '',
-    description: '',
-    website: '',
-    email: '',
-    phone: '',
-    address: '',
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+
+  const [form, setForm] = useState({
+    company_name: '',
+    contact_person: '',
+    company_email: '',
+    company_phone: '',
+    company_website: '',
+    company_address: '',
     industry: '',
-    companySize: '',
+    company_description: '',
+    business_registration: '',
   });
 
+  const fieldMeta = [
+    { key: 'company_name', label: 'Company Name', icon: FaBuilding },
+    { key: 'contact_person', label: 'Contact Person', icon: FaUserTie },
+    { key: 'company_email', label: 'Business Email', icon: FaEnvelope, type: 'email' },
+    { key: 'company_phone', label: 'Phone Number', icon: FaPhone, type: 'tel' },
+    { key: 'company_website', label: 'Website', icon: FaGlobe, type: 'url' },
+    { key: 'company_address', label: 'Company Address', icon: FaMapMarkerAlt },
+  ];
+
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await employerService.getProfile();
-        const data = res.data?.data || res.data;
-        setProfile(data);
-        setFormData({
-          companyName: data.companyName || data.name || '',
-          description: data.description || '',
-          website: data.website || '',
-          email: data.email || '',
-          phone: data.phone || '',
-          address: data.address || '',
-          industry: data.industry || '',
-          companySize: data.companySize || '',
-        });
-      } catch (err) {
-        toast.error('Failed to load profile.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
+    loadProfile();
   }, []);
+
+  const loadProfile = async () => {
+    try {
+      const res = await api.get('/employers/profile');
+      const data = res.data?.data || res.data;
+      setProfile(data);
+      setForm({
+        company_name: data.company_name || '',
+        contact_person: data.contact_person || '',
+        company_email: data.company_email || user?.email || '',
+        company_phone: data.company_phone || '',
+        company_website: data.company_website || '',
+        company_address: data.company_address || '',
+        industry: data.industry || '',
+        company_description: data.company_description || '',
+        business_registration: data.business_registration || '',
+      });
+    } catch {
+      toast.error('Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await employerService.updateProfile(formData);
-      toast.success('Profile updated successfully!');
+      const payload = { ...form };
+      await api.put('/employers/profile', payload);
+      toast.success('Profile updated!');
       setEditMode(false);
-      const res = await employerService.getProfile();
-      const data = res.data?.data || res.data;
-      setProfile(data);
-      if (setUser) setUser((prev) => ({ ...prev, ...data }));
+      await loadProfile();
+      const me = await api.get('/auth/me');
+      setUser(me.data.data);
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to update profile.');
+      toast.error(err?.response?.data?.message || 'Failed to update profile');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleLogoClick = () => fileInputRef.current?.click();
-
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be less than 5MB'); return; }
     const fd = new FormData();
     fd.append('logo', file);
-    setUploadingLogo(true);
+    setUploading(true);
     try {
-      await employerService.uploadLogo(fd);
+      await api.post('/employers/upload-logo', fd);
       toast.success('Logo updated!');
-      const res = await employerService.getProfile();
-      const data = res.data?.data || res.data;
-      setProfile(data);
-    } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to upload logo.');
+      await loadProfile();
+      const me = await api.get('/auth/me');
+      setUser(me.data.data);
+    } catch {
+      toast.error('Failed to upload logo');
     } finally {
-      setUploadingLogo(false);
+      setUploading(false);
     }
   };
 
-  const handleDocUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const fd = new FormData();
-    fd.append('document', file);
-    setUploadingDoc(true);
-    try {
-      await employerService.uploadVerificationDocument?.(fd) || await employerService.updateProfile(fd);
-      toast.success('Verification document uploaded!');
-      const res = await employerService.getProfile();
-      setProfile(res.data?.data || res.data);
-    } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to upload document.');
-    } finally {
-      setUploadingDoc(false);
-    }
+  const getLogoUrl = () => {
+    if (profile?.company_logo) return `http://localhost:5000/${profile.company_logo}`;
+    return null;
   };
 
-  const isVerified = profile?.isVerified || profile?.verified;
+  const handleCancel = () => {
+    setEditMode(false);
+    loadProfile();
+  };
 
   if (loading) {
     return (
       <div className="container py-4">
         <div className="row justify-content-center">
-          <div className="col-12 col-lg-8">
+          <div className="col-lg-8">
             <div className="card border-0 shadow-sm">
-              <div className="card-body text-center py-5 placeholder-glow">
-                <div className="rounded-circle bg-secondary mx-auto mb-3" style={{ width: 120, height: 120 }}></div>
-                <div className="placeholder col-6 mx-auto mb-2" style={{ height: 24 }}></div>
-                <div className="placeholder col-4 mx-auto" style={{ height: 16 }}></div>
+              <div className="card-body text-center py-5">
+                <div className="spinner-border text-primary" />
               </div>
             </div>
           </div>
@@ -135,242 +134,113 @@ const EmployerProfile = () => {
   return (
     <div className="container py-4">
       <div className="row justify-content-center">
-        <div className="col-12 col-lg-8">
-          <div className="card border-0 shadow-sm mb-4">
-            <div className="card-body">
+        <div className="col-lg-8">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body p-4">
               <div className="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                  <h4 className="fw-bold mb-0">Company Profile</h4>
-                </div>
-                <div className="d-flex align-items-center gap-2">
-                  {isVerified !== undefined && (
-                    <span className={`badge rounded-pill ${isVerified ? 'bg-success' : 'bg-warning text-dark'}`}>
-                      <BsShieldCheck className="me-1" />
-                      {isVerified ? 'Verified' : 'Not Verified'}
-                    </span>
-                  )}
-                  <button
-                    className={`btn ${editMode ? 'btn-secondary' : 'btn-primary'}`}
-                    onClick={() => setEditMode(!editMode)}
-                  >
-                    <BsPencil className="me-1" />
-                    {editMode ? 'Cancel' : 'Edit Profile'}
-                  </button>
-                </div>
+                <h4 className="fw-bold mb-0">Company Profile</h4>
+                <button
+                  className={`btn ${editMode ? 'btn-outline-secondary' : 'btn-primary'} rounded-3 px-3`}
+                  onClick={() => setEditMode(!editMode)}
+                >
+                  {editMode ? <><FaTimes className="me-1" /> Cancel</> : <>Edit Profile</>}
+                </button>
               </div>
 
               <div className="text-center mb-4">
                 <div
                   className="position-relative d-inline-block"
                   style={{ cursor: 'pointer' }}
-                  onClick={handleLogoClick}
+                  onClick={() => fileRef.current?.click()}
                 >
-                  <img
-                    src={profile?.logo || profile?.picture || 'https://via.placeholder.com/120?text=Logo'}
-                    alt="Company Logo"
-                    className="rounded-circle"
-                    style={{ width: 120, height: 120, objectFit: 'cover' }}
-                  />
-                  <div
-                    className="position-absolute bottom-0 end-0 rounded-circle bg-primary d-flex align-items-center justify-content-center"
-                    style={{ width: 36, height: 36, color: '#fff' }}
-                  >
-                    <BsCamera />
+                  {getLogoUrl() ? (
+                    <img
+                      src={getLogoUrl()}
+                      alt="Logo"
+                      className="rounded-circle border"
+                      style={{ width: 120, height: 120, objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div
+                      className="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto border"
+                      style={{ width: 120, height: 120 }}
+                    >
+                      <FaBuilding size={40} className="text-muted" />
+                    </div>
+                  )}
+                  <div className="position-absolute bottom-0 end-0 bg-primary rounded-circle d-flex align-items-center justify-content-center" style={{ width: 34, height: 34 }}>
+                    <FaCamera size={14} color="#fff" />
                   </div>
-                  {uploadingLogo && (
+                  {uploading && (
                     <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 rounded-circle">
-                      <div className="spinner-border spinner-border-sm text-light"></div>
+                      <div className="spinner-border spinner-border-sm text-light" />
                     </div>
                   )}
                 </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="d-none"
-                  onChange={handleLogoUpload}
-                />
-                <p className="text-muted small mt-2 mb-0">Click to change company logo</p>
+                <input ref={fileRef} type="file" accept="image/*" className="d-none" onChange={handleLogoUpload} />
+                <p className="text-muted small mt-2 mb-0">Click logo to change</p>
               </div>
 
               <div className="row g-3">
-                <div className="col-12 col-md-6">
-                  <label className="form-label small fw-semibold">Company Name</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="companyName"
-                    value={formData.companyName}
-                    onChange={handleChange}
-                    disabled={!editMode}
-                  />
+                {fieldMeta.map(({ key, label, icon: Icon, type = 'text' }) => (
+                  <div className="col-md-6" key={key}>
+                    <label className="form-label small fw-semibold text-muted mb-1">{label}</label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-light"><Icon size={14} /></span>
+                      <input
+                        type={type}
+                        className="form-control"
+                        name={key}
+                        value={form[key]}
+                        onChange={handleChange}
+                        disabled={!editMode}
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                <div className="col-md-6">
+                  <label className="form-label small fw-semibold text-muted mb-1">Industry</label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-light"><FaIndustry size={14} /></span>
+                    <select className="form-select" name="industry" value={form.industry} onChange={handleChange} disabled={!editMode}>
+                      <option value="">Select Industry</option>
+                      {industries.map((i) => <option key={i} value={i}>{i}</option>)}
+                    </select>
+                  </div>
                 </div>
-                <div className="col-12 col-md-6">
-                  <label className="form-label small fw-semibold">Email</label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    disabled={!editMode}
-                  />
-                </div>
-                <div className="col-12 col-md-6">
-                  <label className="form-label small fw-semibold">Phone</label>
-                  <input
-                    type="tel"
-                    className="form-control"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    disabled={!editMode}
-                  />
-                </div>
-                <div className="col-12 col-md-6">
-                  <label className="form-label small fw-semibold">Website</label>
-                  <input
-                    type="url"
-                    className="form-control"
-                    name="website"
-                    value={formData.website}
-                    onChange={handleChange}
-                    disabled={!editMode}
-                    placeholder="https://"
-                  />
-                </div>
-                <div className="col-12 col-md-6">
-                  <label className="form-label small fw-semibold">Industry</label>
-                  <select
-                    className="form-select"
-                    name="industry"
-                    value={formData.industry}
-                    onChange={handleChange}
-                    disabled={!editMode}
-                  >
-                    <option value="">Select Industry</option>
-                    <option value="Technology">Technology</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Finance">Finance</option>
-                    <option value="Design">Design</option>
-                    <option value="Engineering">Engineering</option>
-                    <option value="Healthcare">Healthcare</option>
-                    <option value="Education">Education</option>
-                    <option value="Sales">Sales</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div className="col-12 col-md-6">
-                  <label className="form-label small fw-semibold">Company Size</label>
-                  <select
-                    className="form-select"
-                    name="companySize"
-                    value={formData.companySize}
-                    onChange={handleChange}
-                    disabled={!editMode}
-                  >
-                    <option value="">Select Size</option>
-                    <option value="1-10">1-10 employees</option>
-                    <option value="11-50">11-50 employees</option>
-                    <option value="51-200">51-200 employees</option>
-                    <option value="201-500">201-500 employees</option>
-                    <option value="500+">500+ employees</option>
-                  </select>
-                </div>
+
                 <div className="col-12">
-                  <label className="form-label small fw-semibold">Address</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    disabled={!editMode}
-                  />
-                </div>
-                <div className="col-12">
-                  <label className="form-label small fw-semibold">Company Description</label>
+                  <label className="form-label small fw-semibold text-muted mb-1">Company Description</label>
                   <textarea
                     className="form-control"
-                    name="description"
-                    rows="4"
-                    value={formData.description}
+                    name="company_description"
+                    rows={3}
+                    value={form.company_description}
                     onChange={handleChange}
                     disabled={!editMode}
-                    placeholder="Tell students about your company..."
+                  />
+                </div>
+
+                <div className="col-md-6">
+                  <label className="form-label small fw-semibold text-muted mb-1">Business Registration No.</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="business_registration"
+                    value={form.business_registration}
+                    onChange={handleChange}
+                    disabled={!editMode}
                   />
                 </div>
               </div>
 
               {editMode && (
-                <div className="mt-4">
-                  <button
-                    className="btn btn-primary px-4"
-                    onClick={handleSave}
-                    disabled={saving}
-                  >
-                    {saving ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2"></span>
-                        Saving...
-                      </>
-                    ) : (
-                      'Save Changes'
-                    )}
+                <div className="d-flex gap-2 mt-4 pt-3 border-top justify-content-end">
+                  <button className="btn btn-outline-secondary px-4" onClick={handleCancel}>Cancel</button>
+                  <button className="btn btn-primary px-4" onClick={handleSave} disabled={saving}>
+                    {saving ? <><span className="spinner-border spinner-border-sm me-1" /> Saving...</> : <><FaSave className="me-1" /> Save Changes</>}
                   </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-bottom">
-              <h5 className="fw-semibold mb-0">Verification Documents</h5>
-            </div>
-            <div className="card-body">
-              {!isVerified && (
-                <div className="alert alert-warning d-flex align-items-center mb-3">
-                  <BsExclamationTriangle className="me-2 flex-shrink-0" />
-                  <span>Upload verification documents to get your company verified.</span>
-                </div>
-              )}
-              {profile?.verificationDocument ? (
-                <div className="d-flex align-items-center justify-content-between p-3 bg-light rounded">
-                  <div className="d-flex align-items-center">
-                    <BsShieldCheck size={24} className="text-success me-3" />
-                    <div>
-                      <p className="mb-0 fw-semibold">Verification document uploaded</p>
-                      <small className="text-muted">Under review</small>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <button
-                    className="btn btn-outline-primary"
-                    onClick={() => docInputRef.current?.click()}
-                    disabled={uploadingDoc}
-                  >
-                    {uploadingDoc ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2"></span>
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <BsUpload className="me-2" />
-                        Upload Verification Document
-                      </>
-                    )}
-                  </button>
-                  <input
-                    ref={docInputRef}
-                    type="file"
-                    accept=".pdf,.doc,.docx,.jpg,.png"
-                    className="d-none"
-                    onChange={handleDocUpload}
-                  />
-                  <p className="text-muted small mt-2">Supports PDF, DOC, DOCX, JPG, PNG</p>
                 </div>
               )}
             </div>

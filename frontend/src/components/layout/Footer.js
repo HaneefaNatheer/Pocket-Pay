@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FiMail, FiPhone, FiMapPin, FiFacebook, FiTwitter, FiLinkedin, FiInstagram } from 'react-icons/fi';
-import PocketPayLogo from '../common/PocketPayLogo';
+import pocketPayLogo from '../../assets/images/pocket-pay-logo.png';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -12,7 +12,7 @@ const Footer = () => {
         <div className="row g-4">
           <div className="col-lg-4 col-md-6">
             <div className="d-flex align-items-center mb-3">
-              <PocketPayLogo size={40} className="me-2" />
+              <img src={pocketPayLogo} alt="Pocket-Pay" style={{ height: 40, width: 'auto' }} className="me-2" />
               <h5 className="fw-bold mb-0" style={{ color: '#ffffff' }}>Pocket-Pay</h5>
             </div>
             <p style={{ color: '#9ca3af' }} className="small mb-3">

@@ -264,16 +264,19 @@ export default function EmployerServices() {
             {demoAnalytics.map((stat, i) => (
               <div key={i} className="col-lg-3 col-6">
                 <AnimSection delay={i * 0.1}>
-                  <div className="p-4 rounded-4 text-center" style={{ background: '#fff', border: '1px solid #e2e8f0', transition: '0.3s' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.08)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
+                  <div className="p-4 rounded-4 text-center position-relative overflow-hidden" style={{ background: '#fff', border: '1px solid #e2e8f0', transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 12px 32px rgba(37,99,235,0.1)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'rgba(37,99,235,0.2)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
                   >
-                    <div className="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle" style={{ width: 50, height: 50, background: `${stat.color}12` }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${stat.color}, ${stat.color}88)` }} />
+                    <div className="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle" style={{ width: 52, height: 52, background: `${stat.color}12` }}>
                       <stat.icon size={22} style={{ color: stat.color }} />
                     </div>
-                    <h3 className="fw-bold mb-0">{stat.value}</h3>
-                    <small className="text-muted">{stat.label}</small>
-                    {stat.change && <div><span style={{ color: '#10b981', fontSize: '0.75rem', fontWeight: 600 }}>{stat.change}</span></div>}
+                    <h3 className="fw-bold mb-0" style={{ fontSize: '1.75rem' }}>{stat.value}</h3>
+                    <small className="text-muted" style={{ fontSize: '0.85rem' }}>{stat.label}</small>
+                    {stat.change && (
+                      <div className="mt-1"><span className="badge rounded-pill px-2 py-0" style={{ background: '#f0fdf4', color: '#16a34a', fontSize: '0.7rem', fontWeight: 600 }}>{stat.change}</span></div>
+                    )}
                   </div>
                 </AnimSection>
               </div>
@@ -291,11 +294,15 @@ export default function EmployerServices() {
                   key={tab.key}
                   className="btn rounded-pill px-4 py-2 fw-semibold"
                   style={{
-                    background: activeTab === tab.key ? '#2563eb' : '#f1f5f9',
+                    background: activeTab === tab.key ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : '#f1f5f9',
                     color: activeTab === tab.key ? '#fff' : '#475569',
                     border: 'none',
-                    transition: '0.2s',
+                    boxShadow: activeTab === tab.key ? '0 4px 16px rgba(37,99,235,0.3)' : 'none',
+                    transform: activeTab === tab.key ? 'scale(1.05)' : 'scale(1)',
+                    transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
                   }}
+                  onMouseEnter={e => { if (activeTab !== tab.key) { e.currentTarget.style.background = '#e2e8f0'; } }}
+                  onMouseLeave={e => { if (activeTab !== tab.key) { e.currentTarget.style.background = '#f1f5f9'; } }}
                   onClick={() => setActiveTab(tab.key)}
                 >
                   <tab.icon className="me-1" />{tab.label}
@@ -317,9 +324,15 @@ export default function EmployerServices() {
               {myJobs.length === 0 && (
                 <AnimSection delay={0.1}>
                   <div className="text-center p-5 rounded-4" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
-                    <FaBriefcase size={40} className="text-muted mb-3" />
-                    <h6 className="fw-bold text-muted">No jobs posted yet</h6>
-                    <p className="text-muted" style={{ fontSize: '0.88rem' }}>Click "Post New Job" to create your first listing.</p>
+                    <div style={{ opacity: 0.5 }}>
+                      <FaBriefcase size={48} className="text-muted mb-3" />
+                    </div>
+                    <h6 className="fw-bold" style={{ color: '#475569' }}>No jobs posted yet</h6>
+                    <p className="text-muted mb-3" style={{ fontSize: '0.88rem' }}>Click "Post New Job" to create your first listing and start attracting candidates.</p>
+                    <button className="btn rounded-pill px-4 fw-semibold" style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', border: 'none' }}
+                      onClick={() => setActiveTab('post')}>
+                      <FaPlusCircle className="me-1" /> Post Your First Job
+                    </button>
                   </div>
                 </AnimSection>
               )}
@@ -327,14 +340,15 @@ export default function EmployerServices() {
               <div className="d-flex flex-column gap-3">
                 {myJobs.map((job, i) => (
                   <AnimSection key={job.id} delay={(i + 1) * 0.1}>
-                    <div className="p-4 rounded-4" style={{ background: '#fff', border: '1px solid #e2e8f0', transition: '0.3s' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.06)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
+                    <div className="p-4 rounded-4 position-relative overflow-hidden" style={{ background: '#fff', border: '1px solid #e2e8f0', transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 12px 32px rgba(37,99,235,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(37,99,235,0.15)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
                     >
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: job.status === 'active' ? 'linear-gradient(90deg, #10b981, #34d399)' : job.status === 'draft' ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : 'linear-gradient(90deg, #6b7280, #9ca3af)' }} />
                       <div className="d-flex align-items-start justify-content-between flex-wrap gap-3">
                         <div className="d-flex align-items-start gap-3">
-                          <div className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: 48, height: 48, background: '#2563eb12' }}>
-                            <FaBriefcase size={20} style={{ color: '#2563eb' }} />
+                          <div className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: 48, height: 48, background: job.status === 'active' ? '#10b98112' : job.status === 'draft' ? '#f59e0b12' : '#6b728012' }}>
+                            <FaBriefcase size={20} style={{ color: job.status === 'active' ? '#10b981' : job.status === 'draft' ? '#f59e0b' : '#6b7280' }} />
                           </div>
                           <div>
                             <h6 className="fw-bold mb-1">{job.title}</h6>
@@ -342,46 +356,69 @@ export default function EmployerServices() {
                               <FaBuilding size={11} className="text-muted" />
                               <small className="text-muted">{job.employer?.company_name || 'Company'}</small>
                             </div>
-                            <small className="text-muted">Posted {job.created_at ? new Date(job.created_at).toLocaleDateString() : ''}</small>
+                            <small className="text-muted" style={{ fontSize: '0.78rem' }}>
+                              <FaCalendarAlt size={10} className="me-1" />
+                              Posted {job.created_at ? new Date(job.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                            </small>
                           </div>
                         </div>
                         <span className="badge rounded-pill px-3 py-1 align-self-start" style={{
-                          background: job.status === 'active' ? '#10b98115' : job.status === 'draft' ? '#f59e0b15' : '#6b728015',
-                          color: job.status === 'active' ? '#10b981' : job.status === 'draft' ? '#f59e0b' : '#6b7280',
+                          background: job.status === 'active' ? '#f0fdf4' : job.status === 'draft' ? '#fffbeb' : '#f3f4f6',
+                          color: job.status === 'active' ? '#059669' : job.status === 'draft' ? '#d97706' : '#6b7280',
                           fontSize: '0.78rem', fontWeight: 600,
-                        }}>{job.status === 'active' ? 'Active' : job.status === 'draft' ? 'Draft' : job.status}</span>
+                        }}>
+                          {job.status === 'active' ? 'Active' : job.status === 'draft' ? 'Draft' : job.status}
+                        </span>
                       </div>
 
                       <div className="d-flex flex-wrap gap-3 mt-3 pt-3" style={{ borderTop: '1px solid #f1f5f9' }}>
                         <span className="d-flex align-items-center gap-1" style={{ fontSize: '0.8rem', color: '#475569' }}>
-                          <FaUsers size={12} className="text-muted" /> {job.current_applicants || 0} Applications
+                          <FaUsers size={12} style={{ color: '#7c3aed' }} /> {job.current_applicants || 0} Applications
                         </span>
                         <span className="d-flex align-items-center gap-1" style={{ fontSize: '0.8rem', color: '#475569' }}>
-                          <FaEye size={12} className="text-muted" /> {job.views_count || 0} Views
+                          <FaEye size={12} style={{ color: '#3b82f6' }} /> {job.views_count || 0} Views
                         </span>
                         {job.salary_min && (
                           <span className="d-flex align-items-center gap-1" style={{ fontSize: '0.8rem', color: '#475569' }}>
-                            <FaMoneyBillWave size={12} className="text-muted" /> LKR {job.salary_min.toLocaleString()}{job.salary_type === 'hourly' ? '/hr' : job.salary_type === 'daily' ? '/day' : '/mo'}
+                            <FaMoneyBillWave size={12} style={{ color: '#10b981' }} /> LKR {job.salary_min.toLocaleString()}{job.salary_type === 'hourly' ? '/hr' : job.salary_type === 'daily' ? '/day' : '/mo'}
                           </span>
                         )}
                         {job.workers_needed > 1 && (
                           <span className="d-flex align-items-center gap-1" style={{ fontSize: '0.8rem', color: '#475569' }}>
-                            <FaUsers size={12} className="text-muted" /> {job.workers_hired || 0}/{job.workers_needed} hired
+                            <FaUsers size={12} style={{ color: '#f59e0b' }} /> {job.workers_hired || 0}/{job.workers_needed} hired
                           </span>
                         )}
                       </div>
 
+                      {job.workers_needed > 1 && (
+                        <div className="mt-2 d-flex align-items-center gap-2">
+                          <small className="text-muted" style={{ fontSize: '0.7rem' }}>Hiring progress:</small>
+                          <div style={{ flex: 1, maxWidth: 200, height: 5, background: '#e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                            <div style={{ width: `${Math.min(((job.workers_hired || 0) / job.workers_needed) * 100, 100)}%`, height: '100%', background: 'linear-gradient(90deg, #2563eb, #60a5fa)', borderRadius: 10 }} />
+                          </div>
+                          <small className="fw-semibold" style={{ fontSize: '0.7rem', color: '#2563eb' }}>{Math.round(((job.workers_hired || 0) / job.workers_needed) * 100)}%</small>
+                        </div>
+                      )}
+
                       <div className="d-flex flex-wrap gap-2 mt-3">
-                        <button className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                        <button className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: '#eff6ff', color: '#2563eb', border: 'none', transition: '0.2s' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#dbeafe'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = '#eff6ff'; }}>
                           <FaEye className="me-1" />View
                         </button>
-                        <button className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: '#fefce8', color: '#ca8a04' }}>
+                        <button className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: '#fffbeb', color: '#d97706', border: 'none', transition: '0.2s' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#fef3c7'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = '#fffbeb'; }}>
                           <FaEdit className="me-1" />Edit
                         </button>
-                        <button className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: '#fef2f2', color: '#ef4444' }}>
+                        <button className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: '#fef2f2', color: '#ef4444', border: 'none', transition: '0.2s' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = '#fef2f2'; }}>
                           <FaTrash className="me-1" />Delete
                         </button>
-                        <button className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: '#7c3aed', color: '#fff' }}>
+                        <button className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: '#fff', border: 'none', transition: '0.2s' }}
+                          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(124,58,237,0.35)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}>
                           <FaUsers className="me-1" />View Applicants
                         </button>
                       </div>
@@ -406,7 +443,10 @@ export default function EmployerServices() {
 
                 {/* 1. Basic Details */}
                 <AnimSection delay={0.08}>
-                  <div className="rounded-4 p-4" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                  <div className="rounded-4 p-4 position-relative overflow-hidden" style={{ background: '#fff', border: '1px solid #e2e8f0', transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(124,58,237,0.06)'; e.currentTarget.style.borderColor = 'rgba(124,58,237,0.15)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#e2e8f0'; }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #7c3aed, #a78bfa)' }} />
                     <div className="d-flex align-items-center gap-3 mb-3">
                       <div className="rounded-3 d-flex align-items-center justify-content-center" style={{ width: 42, height: 42, background: '#7c3aed12' }}>
                         <FaBriefcase size={18} style={{ color: '#7c3aed' }} />
@@ -425,7 +465,10 @@ export default function EmployerServices() {
 
                 {/* 2. Job Information */}
                 <AnimSection delay={0.16}>
-                  <div className="rounded-4 p-4" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                  <div className="rounded-4 p-4 position-relative overflow-hidden" style={{ background: '#fff', border: '1px solid #e2e8f0', transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(59,130,246,0.06)'; e.currentTarget.style.borderColor = 'rgba(59,130,246,0.15)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#e2e8f0'; }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #3b82f6, #60a5fa)' }} />
                     <div className="d-flex align-items-center gap-3 mb-3">
                       <div className="rounded-3 d-flex align-items-center justify-content-center" style={{ width: 42, height: 42, background: '#3b82f612' }}>
                         <FaFileAlt size={18} style={{ color: '#3b82f6' }} />
@@ -441,7 +484,10 @@ export default function EmployerServices() {
 
                 {/* 3. Work Details */}
                 <AnimSection delay={0.24}>
-                  <div className="rounded-4 p-4" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                  <div className="rounded-4 p-4 position-relative overflow-hidden" style={{ background: '#fff', border: '1px solid #e2e8f0', transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(16,185,129,0.06)'; e.currentTarget.style.borderColor = 'rgba(16,185,129,0.15)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#e2e8f0'; }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #10b981, #34d399)' }} />
                     <div className="d-flex align-items-center gap-3 mb-3">
                       <div className="rounded-3 d-flex align-items-center justify-content-center" style={{ width: 42, height: 42, background: '#10b98112' }}>
                         <FaClock size={18} style={{ color: '#10b981' }} />
@@ -467,7 +513,10 @@ export default function EmployerServices() {
 
                 {/* 4. Location */}
                 <AnimSection delay={0.32}>
-                  <div className="rounded-4 p-4" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                  <div className="rounded-4 p-4 position-relative overflow-hidden" style={{ background: '#fff', border: '1px solid #e2e8f0', transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(245,158,11,0.06)'; e.currentTarget.style.borderColor = 'rgba(245,158,11,0.15)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#e2e8f0'; }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #f59e0b, #fbbf24)' }} />
                     <div className="d-flex align-items-center gap-3 mb-3">
                       <div className="rounded-3 d-flex align-items-center justify-content-center" style={{ width: 42, height: 42, background: '#f59e0b12' }}>
                         <FaMapMarkerAlt size={18} style={{ color: '#f59e0b' }} />
@@ -482,7 +531,10 @@ export default function EmployerServices() {
 
                 {/* 5. Contact */}
                 <AnimSection delay={0.40}>
-                  <div className="rounded-4 p-4" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                  <div className="rounded-4 p-4 position-relative overflow-hidden" style={{ background: '#fff', border: '1px solid #e2e8f0', transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(236,72,153,0.06)'; e.currentTarget.style.borderColor = 'rgba(236,72,153,0.15)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#e2e8f0'; }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #ec4899, #f472b6)' }} />
                     <div className="d-flex align-items-center gap-3 mb-3">
                       <div className="rounded-3 d-flex align-items-center justify-content-center" style={{ width: 42, height: 42, background: '#ec489912' }}>
                         <FaPhone size={18} style={{ color: '#ec4899' }} />
@@ -499,7 +551,10 @@ export default function EmployerServices() {
 
                 {/* 6. Application */}
                 <AnimSection delay={0.48}>
-                  <div className="rounded-4 p-4" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
+                  <div className="rounded-4 p-4 position-relative overflow-hidden" style={{ background: '#fff', border: '1px solid #e2e8f0', transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(139,92,246,0.06)'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.15)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#e2e8f0'; }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #8b5cf6, #a78bfa)' }} />
                     <div className="d-flex align-items-center gap-3 mb-3">
                       <div className="rounded-3 d-flex align-items-center justify-content-center" style={{ width: 42, height: 42, background: '#8b5cf612' }}>
                         <FaCalendarAlt size={18} style={{ color: '#8b5cf6' }} />
@@ -524,7 +579,8 @@ export default function EmployerServices() {
               </div>
 
               {submitMsg && (
-                <div className="text-center mt-3 p-2 rounded-3 fw-semibold" style={{ background: submitMsg.includes('success') || submitMsg.includes('published') || submitMsg.includes('saved') ? '#f0fdf4' : '#fef2f2', color: submitMsg.includes('success') || submitMsg.includes('published') || submitMsg.includes('saved') ? '#16a34a' : '#ef4444', fontSize: '0.9rem' }}>
+                <div className="text-center mt-3 p-3 rounded-3 fw-semibold d-flex align-items-center justify-content-center gap-2" style={{ background: submitMsg.includes('failed') || submitMsg.includes('Failed') ? '#fef2f2' : '#f0fdf4', color: submitMsg.includes('failed') || submitMsg.includes('Failed') ? '#dc2626' : '#16a34a', fontSize: '0.9rem', border: `1px solid ${submitMsg.includes('failed') || submitMsg.includes('Failed') ? '#fecaca' : '#bbf7d0'}` }}>
+                  {submitMsg.includes('failed') || submitMsg.includes('Failed') ? <FaTimes /> : <FaCheckCircle />}
                   {submitMsg}
                 </div>
               )}
@@ -532,10 +588,14 @@ export default function EmployerServices() {
               {/* Publish / Save Draft Buttons */}
               <AnimSection delay={0.56}>
                 <div className="d-flex gap-3 justify-content-center mt-4">
-                  <button className="btn rounded-pill px-5 py-2 fw-semibold" style={{ background: '#2563eb', color: '#fff', fontSize: '1rem' }} disabled={submitting} onClick={() => handlePostJob(false)}>
+                  <button className="btn rounded-pill px-5 py-2 fw-semibold" style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: '1rem', border: 'none', boxShadow: '0 4px 16px rgba(37,99,235,0.3)', transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)' }} disabled={submitting} onClick={() => handlePostJob(false)}
+                    onMouseEnter={e => { if (!submitting) { e.currentTarget.style.boxShadow = '0 8px 24px rgba(37,99,235,0.45)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(37,99,235,0.3)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
                     {submitting ? 'Publishing...' : <><FaCheck className="me-2" />Publish Job</>}
                   </button>
-                  <button className="btn rounded-pill px-5 py-2 fw-semibold" style={{ background: '#f1f5f9', color: '#475569', fontSize: '1rem' }} disabled={submitting} onClick={() => handlePostJob(true)}>
+                  <button className="btn rounded-pill px-5 py-2 fw-semibold" style={{ background: '#f1f5f9', color: '#475569', fontSize: '1rem', border: '1px solid #e2e8f0', transition: 'all 0.2s' }} disabled={submitting} onClick={() => handlePostJob(true)}
+                    onMouseEnter={e => { if (!submitting) { e.currentTarget.style.background = '#e2e8f0'; } }}
+                    onMouseLeave={e => { if (!submitting) { e.currentTarget.style.background = '#f1f5f9'; } }}>
                     <FaSave className="me-2" />Save as Draft
                   </button>
                 </div>

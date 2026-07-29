@@ -40,6 +40,13 @@ const updateProfile = async (req, res) => {
 
     await student.update(updates);
 
+    if (req.body.name !== undefined || req.body.phone !== undefined) {
+      const userUpdates = {};
+      if (req.body.name !== undefined) userUpdates.name = req.body.name;
+      if (req.body.phone !== undefined) userUpdates.phone = req.body.phone;
+      await User.update(userUpdates, { where: { id: req.user.id } });
+    }
+
     return res.status(200).json({ success: true, message: 'Profile updated', data: student });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -77,7 +84,7 @@ const uploadCV = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Student profile not found' });
     }
 
-    const filePath = `uploads/cvs/${req.file.filename}`;
+    const filePath = `uploads/cv/${req.file.filename}`;
     await student.update({ cv_file: filePath });
 
     return res.status(200).json({ success: true, message: 'CV uploaded', data: { cv_file: filePath } });

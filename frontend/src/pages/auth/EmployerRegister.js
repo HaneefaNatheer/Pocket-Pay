@@ -53,7 +53,7 @@ const labelStyle = {
 
 const EmployerRegister = () => {
   const navigate = useNavigate();
-  const { register, login } = useAuth();
+  const { register, login, setUser } = useAuth();
   const fileInputRef = useRef(null);
 
   const [step, setStep] = useState(0);
@@ -106,7 +106,16 @@ const EmployerRegister = () => {
       setLoading(true);
       try {
         const { agreeTerms, confirmPassword, ...submitData } = formData;
-        await register({ ...submitData, role: 'employer' });
+        await register({
+          ...submitData,
+          company_name: formData.companyName,
+          contact_person: formData.contactPerson,
+          company_website: formData.companyWebsite,
+          company_address: formData.companyAddress,
+          business_registration: formData.businessRegistration,
+          name: formData.contactPerson,
+          role: 'employer',
+        });
         await login(formData.email, formData.password, 'employer');
         setAccountCreated(true);
         toast.success('Account created! Now set up your company profile.');
@@ -204,6 +213,8 @@ const EmployerRegister = () => {
       }
 
       toast.success('Profile setup complete!');
+      const updated = await api.get('/auth/me');
+      setUser(updated.data.data);
       setRegistered(true);
     } catch (err) {
       toast.error('Failed to save profile. You can update later.');
