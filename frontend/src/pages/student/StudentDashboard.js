@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import useFetch from '../../hooks/useFetch';
 import { applicationService } from '../../services/applicationService';
-import { BsBriefcase, BsBookmarkHeart, BsLightning, BsPersonCheck, BsSearch, BsPerson, BsPlusLg, BsCalendarEvent } from 'react-icons/bs';
+import { BsBriefcase, BsCheckCircle, BsXCircle, BsHourglassSplit, BsSearch, BsPerson, BsCalendarEvent } from 'react-icons/bs';
 import { toast } from 'react-toastify';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const StatsCard = ({ icon, label, value, color, link }) => (
   <div className="col-12 col-sm-6 col-lg-3 mb-4">
     <Link to={link} className="text-decoration-none">
-      <div className={`card border-0 shadow-sm h-100 stats-card`}>
+      <div className="card border-0 shadow-sm h-100 stats-card">
         <div className="card-body d-flex align-items-center">
-          <div className={`rounded-circle d-flex align-items-center justify-content-center me-3`} style={{ width: 56, height: 56, backgroundColor: `${color}20` }}>
+          <div className="rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: 56, height: 56, backgroundColor: `${color}20` }}>
             {icon}
           </div>
           <div>
@@ -39,30 +38,28 @@ const statusBadge = (status) => {
 
 const StudentDashboard = () => {
   const { user } = useAuth();
-  const { data: applications, loading: loadingApps } = useFetch('/applications/my');
-  const { data: savedJobs, loading: loadingSaved } = useFetch('/saved-jobs');
-  const { data: recommended, loading: loadingRec } = useFetch('/jobs/recommended');
-  const { data: profile, loading: loadingProfile } = useFetch('/students/profile');
-
-  const [upcomingInterviews, setUpcomingInterviews] = useState([]);
-  const [loadingInterviews, setLoadingInterviews] = useState(true);
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchInterviews = async () => {
+    const fetchData = async () => {
       try {
-        const res = await applicationService.getInterviews?.() || { data: [] };
-        setUpcomingInterviews(res.data || []);
-      } catch {
-        setUpcomingInterviews([]);
+        const appsRes = await applicationService.getMyApplications();
+        setApplications(appsRes.data?.data || appsRes.data || []);
+      } catch (err) {
+        console.error('Dashboard fetch error:', err?.response?.data || err.message);
+        toast.error(err?.response?.data?.message || 'Failed to load dashboard data.');
       } finally {
-        setLoadingInterviews(false);
+        setLoading(false);
       }
     };
-    fetchInterviews();
+    fetchData();
   }, []);
 
-  const profileCompletion = profile ? calculateCompletion(profile) : 0;
-  const loading = loadingApps || loadingSaved || loadingRec || loadingProfile;
+  const totalApps = applications.length;
+  const accepted = applications.filter((a) => a.status?.toLowerCase() === 'accepted').length;
+  const rejected = applications.filter((a) => a.status?.toLowerCase() === 'rejected').length;
+  const pending = applications.filter((a) => !['accepted', 'rejected'].includes(a.status?.toLowerCase())).length;
 
   if (loading) {
     return (
@@ -87,37 +84,37 @@ const StudentDashboard = () => {
     <div className="container py-4">
       <div className="mb-4">
         <h2 className="fw-bold">Welcome, {user?.name || 'Student'}!</h2>
-        <p className="text-muted">Here's an overview of your job search activity.</p>
+        <p className="text-muted">Track your job applications and responses.</p>
       </div>
 
       <div className="row g-4 mb-4">
         <StatsCard
           icon={<BsBriefcase size={24} color="#0d6efd" />}
-          label="Applied Jobs"
-          value={applications?.length || 0}
+          label="Total Applied"
+          value={totalApps}
           color="#0d6efd"
           link="/student/applied-jobs"
         />
         <StatsCard
-          icon={<BsBookmarkHeart size={24} color="#dc3545" />}
-          label="Saved Jobs"
-          value={savedJobs?.length || 0}
-          color="#dc3545"
-          link="/student/saved-jobs"
-        />
-        <StatsCard
-          icon={<BsLightning size={24} color="#ffc107" />}
-          label="Recommended"
-          value={recommended?.length || 0}
-          color="#ffc107"
-          link="/student/jobs"
-        />
-        <StatsCard
-          icon={<BsPersonCheck size={24} color="#198754" />}
-          label="Profile Completion"
-          value={`${profileCompletion}%`}
+          icon={<BsCheckCircle size={24} color="#198754" />}
+          label="Accepted"
+          value={accepted}
           color="#198754"
-          link="/student/profile"
+          link="/student/applied-jobs"
+        />
+        <StatsCard
+          icon={<BsXCircle size={24} color="#dc3545" />}
+          label="Rejected"
+          value={rejected}
+          color="#dc3545"
+          link="/student/applied-jobs"
+        />
+        <StatsCard
+          icon={<BsHourglassSplit size={24} color="#ffc107" />}
+          label="Under Review"
+          value={pending}
+          color="#ffc107"
+          link="/student/applied-jobs"
         />
       </div>
 
@@ -125,11 +122,11 @@ const StudentDashboard = () => {
         <div className="col-12 col-lg-8">
           <div className="card border-0 shadow-sm mb-4">
             <div className="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
-              <h5 className="mb-0 fw-semibold">Recent Applications</h5>
+              <h5 className="mb-0 fw-semibold">Application Status</h5>
               <Link to="/student/applied-jobs" className="btn btn-sm btn-outline-primary">View All</Link>
             </div>
             <div className="card-body p-0">
-              {applications?.length > 0 ? (
+              {applications.length > 0 ? (
                 <div className="table-responsive">
                   <table className="table table-hover align-middle mb-0">
                     <thead className="table-light">
@@ -138,11 +135,12 @@ const StudentDashboard = () => {
                         <th>Company</th>
                         <th>Applied</th>
                         <th>Status</th>
+                        <th>Employer Feedback</th>
                       </tr>
                     </thead>
                     <tbody>
                       {applications.slice(0, 5).map((app) => (
-                        <tr key={app._id}>
+                        <tr key={app.id || app._id}>
                           <td className="fw-semibold">{app.job?.title || 'N/A'}</td>
                           <td>{app.job?.company?.name || 'N/A'}</td>
                           <td className="text-muted">{new Date(app.createdAt).toLocaleDateString()}</td>
@@ -151,47 +149,16 @@ const StudentDashboard = () => {
                               {app.status}
                             </span>
                           </td>
+                          <td className="small text-muted">
+                            {app.employer_notes || (app.status === 'accepted' ? 'Congratulations!' : app.status === 'rejected' ? 'Not selected this time' : '—')}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               ) : (
-                <div className="text-center py-4 text-muted">No applications yet.</div>
-              )}
-            </div>
-          </div>
-
-          <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
-              <h5 className="mb-0 fw-semibold">Recommended Jobs</h5>
-              <Link to="/student/jobs" className="btn btn-sm btn-outline-primary">View All</Link>
-            </div>
-            <div className="card-body">
-              {recommended?.length > 0 ? (
-                <div className="row g-3">
-                  {recommended.slice(0, 3).map((job) => (
-                    <div key={job._id} className="col-12 col-md-6 col-xl-4">
-                      <Link to={`/jobs/${job._id}`} className="text-decoration-none">
-                        <div className="card h-100 border hover-shadow">
-                          <div className="card-body">
-                            <h6 className="card-title fw-semibold text-dark">{job.title}</h6>
-                            <p className="text-muted small mb-1">{job.company?.name}</p>
-                            <p className="small mb-2">
-                              <span className="badge bg-light text-dark me-1">{job.type}</span>
-                              {job.salary && <span className="text-success small">${job.salary?.min?.toLocaleString()} - ${job.salary?.max?.toLocaleString()}</span>}
-                            </p>
-                            <p className="small text-muted mb-0">
-                              {job.location && <><BsSearch className="me-1" />{job.location}</>}
-                            </p>
-                          </div>
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-4 text-muted">No recommendations available.</div>
+                <div className="text-center py-4 text-muted">No applications yet. Start applying!</div>
               )}
             </div>
           </div>
@@ -203,18 +170,17 @@ const StudentDashboard = () => {
               <h5 className="mb-0 fw-semibold">Upcoming Interviews</h5>
             </div>
             <div className="card-body">
-              {loadingInterviews ? (
-                <div className="text-center py-3"><div className="spinner-border spinner-border-sm text-primary"></div></div>
-              ) : upcomingInterviews.length > 0 ? (
-                upcomingInterviews.map((interview, idx) => (
-                  <div key={idx} className="d-flex align-items-start mb-3 pb-3 border-bottom">
-                    <div className="rounded-circle bg-orange d-flex align-items-center justify-content-center me-3 flex-shrink-0" style={{ width: 40, height: 40, backgroundColor: '#fd7e14', color: '#fff' }}>
+              {applications.filter((a) => a.status?.toLowerCase() === 'interview').length > 0 ? (
+                applications.filter((a) => a.status?.toLowerCase() === 'interview').slice(0, 3).map((app) => (
+                  <div key={app.id || app._id} className="d-flex align-items-start mb-3 pb-3 border-bottom">
+                    <div className="rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0" style={{ width: 40, height: 40, backgroundColor: '#fd7e14', color: '#fff' }}>
                       <BsCalendarEvent />
                     </div>
                     <div>
-                      <h6 className="mb-0 small fw-semibold">{interview.job?.title || 'Interview'}</h6>
-                      <small className="text-muted">{interview.company?.name}</small><br />
-                      <small className="text-primary">{new Date(interview.date).toLocaleString()}</small>
+                      <h6 className="mb-0 small fw-semibold">{app.job?.title || 'Interview'}</h6>
+                      <small className="text-muted">{app.job?.company?.name || ''}</small>
+                      {app.interview_date && <br />}
+                      {app.interview_date && <small className="text-primary">{new Date(app.interview_date).toLocaleString()}</small>}
                     </div>
                   </div>
                 ))
@@ -230,16 +196,10 @@ const StudentDashboard = () => {
             </div>
             <div className="card-body d-grid gap-2">
               <Link to="/student/jobs" className="btn btn-outline-primary d-flex align-items-center gap-2">
-                <BsSearch /> Search Jobs
+                <BsSearch /> Browse Jobs
               </Link>
               <Link to="/student/profile" className="btn btn-outline-secondary d-flex align-items-center gap-2">
                 <BsPerson /> Update Profile
-              </Link>
-              <Link to="/student/skills" className="btn btn-outline-success d-flex align-items-center gap-2">
-                <BsPlusLg /> Add Skills
-              </Link>
-              <Link to="/student/timetable" className="btn btn-outline-warning d-flex align-items-center gap-2">
-                <BsCalendarEvent /> Set Timetable
               </Link>
             </div>
           </div>
@@ -248,15 +208,5 @@ const StudentDashboard = () => {
     </div>
   );
 };
-
-function calculateCompletion(profile) {
-  const fields = ['name', 'phone', 'university', 'degree', 'yearOfStudy', 'bio', 'address', 'salaryMin', 'salaryMax', 'preferredLocation', 'cv'];
-  const filled = fields.filter((f) => {
-    const val = profile[f];
-    if (f === 'salaryMin' || f === 'salaryMax') return val !== undefined && val !== null;
-    return val && String(val).trim() !== '';
-  });
-  return Math.round((filled.length / fields.length) * 100);
-}
 
 export default StudentDashboard;

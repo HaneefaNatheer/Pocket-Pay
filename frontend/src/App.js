@@ -42,6 +42,9 @@ import PostJob from './pages/employer/PostJob';
 import EmployerManageJobs from './pages/employer/ManageJobs';
 import ViewApplicants from './pages/employer/ViewApplicants';
 
+// Shared Pages
+import NotificationsPage from './pages/NotificationsPage';
+
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ManageStudents from './pages/admin/ManageStudents';
@@ -193,6 +196,9 @@ function AppContent() {
           <Route path="/employer/post-job" element={<ProtectedRoute allowedRoles={['employer']}><PostJob /></ProtectedRoute>} />
           <Route path="/employer/manage-jobs" element={<ProtectedRoute allowedRoles={['employer']}><EmployerManageJobs /></ProtectedRoute>} />
           <Route path="/employer/applicants/:jobId" element={<ProtectedRoute allowedRoles={['employer']}><ViewApplicants /></ProtectedRoute>} />
+
+          {/* Shared Routes */}
+          <Route path="/notifications" element={<ProtectedRoute allowedRoles={['student', 'employer']}><NotificationsPage /></ProtectedRoute>} />
 
           {/* Admin Routes */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />

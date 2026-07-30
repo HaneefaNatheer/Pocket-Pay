@@ -130,7 +130,7 @@ a:hover {
    NAVBAR
    ============================================================ */
 .navbar-custom {
-  padding: 0.75rem 0;
+  padding: 0.5rem 0;
   transition: var(--transition);
   z-index: 1050;
 }
@@ -138,7 +138,7 @@ a:hover {
 .navbar-custom.scrolled {
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow);
-  padding: 0.5rem 0;
+  padding: 0.35rem 0;
 }
 
 /* --- Light mode navbar --- */
@@ -653,6 +653,89 @@ a:hover {
   border-color: #e5e7eb;
 }
 
+/* --- Profile Trigger (Right Side) --- */
+.pp-profile-trigger-wrapper {
+  position: relative;
+}
+
+.pp-profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0.3rem 0.6rem 0.3rem 0.3rem;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.pp-profile-trigger:hover {
+  background: var(--gray-100);
+}
+
+.navbar-custom[data-theme="dark"] .pp-profile-trigger:hover {
+  background: var(--dark-lighter);
+}
+
+.pp-profile-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: var(--white);
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.pp-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pp-profile-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.pp-profile-name {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--gray-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.navbar-custom[data-theme="dark"] .pp-profile-name {
+  color: #ffffff;
+}
+
+.pp-profile-role {
+  font-size: 0.65rem;
+  text-transform: capitalize;
+  color: var(--gray-500);
+  font-weight: 500;
+}
+
+@media (max-width: 991.98px) {
+  .pp-profile-info {
+    display: none;
+  }
+  .pp-profile-trigger {
+    padding: 0.3rem;
+  }
+}
+
 /* ============================================================
    HERO SECTION
    ============================================================ */
@@ -668,12 +751,12 @@ a:hover {
 
 .hero-video-bg {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: -5%;
+  left: -5%;
+  width: 110%;
+  height: 110%;
   object-fit: cover;
-  opacity: 0.35;
+  opacity: 0.4;
   z-index: 0;
   pointer-events: none;
 }
@@ -797,6 +880,7 @@ a:hover {
   margin-top: -2.5rem;
   position: relative;
   z-index: 10;
+  padding-bottom: 3rem !important;
 }
 
 .stats-card {
@@ -805,6 +889,11 @@ a:hover {
   box-shadow: var(--shadow-md);
   transition: var(--transition);
   border: 1px solid var(--gray-100);
+  padding: 2.5rem 1.5rem !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .stats-card:hover {
@@ -814,27 +903,29 @@ a:hover {
 
 .stats-icon {
   color: var(--primary);
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   background: rgba(124, 58, 237, 0.08);
 }
 
 .stats-value {
-  font-size: 2.2rem;
+  font-size: 2.5rem;
   font-weight: 800;
   color: var(--gray-900);
-  line-height: 1.2;
+  line-height: 1.1;
+  margin-bottom: 0.15rem;
 }
 
 .stats-label {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--gray-500);
-  font-weight: 500;
+  font-weight: 600;
+  margin-top: 0.15rem;
 }
 
 /* ============================================================

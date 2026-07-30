@@ -49,18 +49,18 @@ const EmployerDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [jobsRes, appsRes] = await Promise.all([
+        const [jobsRes] = await Promise.all([
           employerService.getMyJobs(),
           employerService.getProfile(),
         ]);
-        setJobs(jobsRes.data?.data || jobsRes.data || []);
+        const jobList = (jobsRes.data?.data || jobsRes.data || []).map(j => ({ ...j, _id: j._id || j.id }));
+        setJobs(jobList);
         try {
           const allApps = [];
-          const jobList = jobsRes.data?.data || jobsRes.data || [];
           for (const job of jobList.slice(0, 10)) {
             try {
               const appRes = await employerService.getJobApplicants(job._id);
-              const appList = appRes.data?.data || appRes.data || [];
+              const appList = (appRes.data?.data || appRes.data || []).map(a => ({ ...a, _id: a._id || a.id }));
               appList.forEach((a) => allApps.push({ ...a, job }));
             } catch { }
           }
@@ -200,7 +200,7 @@ const EmployerDashboard = () => {
                     <tbody>
                       {recentApplications.map((app) => (
                         <tr key={app._id}>
-                          <td className="fw-semibold">{app.student?.name || app.user?.name || 'N/A'}</td>
+                          <td className="fw-semibold">{app.student?.user?.name || app.student?.name || app.user?.name || 'N/A'}</td>
                           <td>{app.job?.title || 'N/A'}</td>
                           <td className="text-muted">{new Date(app.createdAt).toLocaleDateString()}</td>
                           <td>

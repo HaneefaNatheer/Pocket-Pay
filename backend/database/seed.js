@@ -21,24 +21,48 @@ const sampleEmployers = [
 ];
 
 const sampleJobs = [
-  { employer: 0, title: 'Frontend Developer Intern',        category: 'internship',   type: 'onsite',   salaryType: 'hourly', min: 15, max: 20 },
-  { employer: 0, title: 'Backend Developer Part-Time',      category: 'part-time',    type: 'remote',   salaryType: 'hourly', min: 20, max: 30 },
-  { employer: 0, title: 'UI/UX Design Freelancer',          category: 'freelance',    type: 'hybrid',   salaryType: 'fixed',  min: 500, max: 1000 },
-  { employer: 0, title: 'Data Entry Clerk',                 category: 'admin',        type: 'onsite',   salaryType: 'hourly', min: 12, max: 16 },
-  { employer: 1, title: 'Barista / Coffee Shop Assistant',  category: 'food-service', type: 'onsite',   salaryType: 'hourly', min: 11, max: 14 },
-  { employer: 1, title: 'Weekend Kitchen Helper',           category: 'food-service', type: 'onsite',   salaryType: 'daily',  min: 60, max: 80 },
-  { employer: 1, title: 'Delivery Driver',                  category: 'delivery',     type: 'onsite',   salaryType: 'hourly', min: 13, max: 18 },
-  { employer: 2, title: 'Retail Sales Associate',           category: 'retail',       type: 'onsite',   salaryType: 'hourly', min: 12, max: 15 },
-  { employer: 2, title: 'Visual Merchandiser',              category: 'creative',     type: 'onsite',   salaryType: 'hourly', min: 14, max: 18 },
-  { employer: 2, title: 'Online Store Tutor',               category: 'tutoring',     type: 'remote',   salaryType: 'hourly', min: 16, max: 22 },
+  // Daily Wage / Flexible → part-time
+  { employer: 0, title: 'Construction Site Helper',         category: 'part-time',    type: 'onsite',  salaryType: 'daily',  min: 2500, max: 3500,  requirements: 'Physically fit, ability to carry heavy loads, basic understanding of construction tools, must wear safety gear, punctual and reliable.', workType: 'daily', shiftDuration: 480, workersNeeded: 5 },
+  { employer: 1, title: 'Warehouse Packer',                 category: 'part-time',    type: 'onsite',  salaryType: 'daily',  min: 2000, max: 2800,  requirements: 'Fast worker, attention to detail, ability to stand for long hours, basic counting skills, team player.', workType: 'daily', shiftDuration: 480, workersNeeded: 3 },
+  // Promotion & Event → part-time
+  { employer: 2, title: 'Brand Promoter - Supermarket',     category: 'part-time',    type: 'onsite',  salaryType: 'hourly', min: 400, max: 600,   requirements: 'Confident speaker, outgoing personality, basic English skills, own transport preferred, previous promo experience is a plus.', workType: 'daily', shiftDuration: 480, workersNeeded: 4 },
+  { employer: 0, title: 'Event Usher - Concert',            category: 'part-time',    type: 'onsite',  salaryType: 'hourly', min: 500, max: 700,   requirements: 'Well-groomed appearance, good communication skills, ability to handle crowds, punctual, available on weekends.', workType: 'one-time', shiftDuration: 360, workersNeeded: 8 },
+  // Education → tutoring
+  { employer: 1, title: 'Mathematics Tutor (Grade 6-11)',   category: 'tutoring',     type: 'onsite',  salaryType: 'hourly', min: 800, max: 1200,  requirements: 'Pass in A/L Mathematics, teaching ability, patience with students, own transport, available after school hours.', workType: 'flexible', shiftDuration: 120, workersNeeded: 2 },
+  { employer: 2, title: 'English Language Instructor',      category: 'tutoring',     type: 'onsite',  salaryType: 'hourly', min: 700, max: 1000,  requirements: 'Fluent in English (spoken & written), basic teaching certification preferred, friendly and approachable, minimum A/L qualification.', workType: 'flexible', shiftDuration: 90, workersNeeded: 3 },
+  // Office Support → admin
+  { employer: 0, title: 'Data Entry Assistant',             category: 'admin',        type: 'onsite',  salaryType: 'monthly', min: 25000, max: 35000, requirements: 'Typing speed of 40+ WPM, MS Excel knowledge, attention to detail, ability to work under deadline, O/L合格.', workType: 'daily', shiftDuration: 480, workersNeeded: 2 },
+  { employer: 1, title: 'Front Desk Receptionist',          category: 'admin',        type: 'onsite',  salaryType: 'monthly', min: 28000, max: 38000, requirements: 'Pleasant personality, professional appearance, phone etiquette, basic computer skills, bilingual preferred.', workType: 'daily', shiftDuration: 480, workersNeeded: 1 },
+  // Delivery & Transport → delivery
+  { employer: 2, title: 'Food Delivery Rider',              category: 'delivery',     type: 'onsite',  salaryType: 'daily', min: 1500, max: 2500, requirements: 'Valid driving license for motorcycle, own bike with insurance, knowledge of local roads, smartphone with data, punctual.', workType: 'daily', shiftDuration: 480, workersNeeded: 5 },
+  { employer: 0, title: 'Package Delivery Driver',          category: 'delivery',     type: 'onsite',  salaryType: 'hourly', min: 500, max: 700,  requirements: 'Valid driving license (LM/B), clean driving record, ability to lift 20kg, navigation skills, professional attitude.', workType: 'daily', shiftDuration: 480, workersNeeded: 2 },
+  // Retail → retail
+  { employer: 1, title: 'Retail Sales Assistant',           category: 'retail',       type: 'onsite',  salaryType: 'hourly', min: 350, max: 500,   requirements: 'Customer service skills, cash handling experience, ability to work on weekends, basic English, presentable appearance.', workType: 'daily', shiftDuration: 480, workersNeeded: 4 },
+  { employer: 2, title: 'Stock Clerk - Supermarket',        category: 'retail',       type: 'onsite',  salaryType: 'hourly', min: 400, max: 550,   requirements: 'Physically fit, organized, ability to use barcode scanners, teamwork, flexible with shifts including weekends.', workType: 'daily', shiftDuration: 480, workersNeeded: 3 },
+  // Hotel & Tourism → food-service
+  { employer: 0, title: 'Hotel Housekeeping Staff',         category: 'food-service', type: 'onsite',  salaryType: 'hourly', min: 400, max: 600,   requirements: 'Attention to detail, ability to work fast, hygiene standards knowledge, teamwork, flexible with morning shifts.', workType: 'daily', shiftDuration: 480, workersNeeded: 4 },
+  { employer: 1, title: 'Guest Relations Assistant',        category: 'food-service', type: 'onsite',  salaryType: 'monthly', min: 30000, max: 40000, requirements: 'Fluent English, professional appearance, hospitality skills, knowledge of local tourist attractions, problem-solving ability.', workType: 'daily', shiftDuration: 480, workersNeeded: 2 },
+  // Freelance / Skill → freelance
+  { employer: 2, title: 'Graphic Designer (Social Media)',  category: 'freelance',    type: 'remote',  salaryType: 'fixed',  min: 15000, max: 30000, requirements: 'Proficiency in Adobe Photoshop & Illustrator, portfolio required, ability to create social media posts, good communication skills, meeting deadlines.', workType: 'flexible', shiftDuration: 0, workersNeeded: 1 },
+  { employer: 0, title: 'Content Writer (English/Sinhala)', category: 'freelance',    type: 'remote',  salaryType: 'fixed',  min: 5000, max: 10000, requirements: 'Excellent writing skills in English and/or Sinhala, ability to research topics, original content creation, meet deadlines, sample articles required.', workType: 'flexible', shiftDuration: 0, workersNeeded: 2 },
 ];
 
 const sampleSkills = [
-  { name: 'JavaScript',   category: 'programming' },
-  { name: 'Graphic Design', category: 'design' },
-  { name: 'Social Media Marketing', category: 'marketing' },
   { name: 'Customer Service', category: 'customer-service' },
+  { name: 'Communication', category: 'soft-skills' },
+  { name: 'Teamwork', category: 'soft-skills' },
+  { name: 'Time Management', category: 'soft-skills' },
   { name: 'Microsoft Office', category: 'technical' },
+  { name: 'Graphic Design', category: 'design' },
+  { name: 'Content Writing', category: 'writing' },
+  { name: 'Social Media Marketing', category: 'marketing' },
+  { name: 'Driving', category: 'technical' },
+  { name: 'Cash Handling', category: 'retail' },
+  { name: 'Teaching', category: 'education' },
+  { name: 'Photography', category: 'creative' },
+  { name: 'Public Speaking', category: 'soft-skills' },
+  { name: 'Stock Management', category: 'retail' },
+  { name: 'Housekeeping', category: 'hospitality' },
 ];
 
 async function seed() {
@@ -119,19 +143,22 @@ async function seed() {
   console.log('Seeding jobs...');
   for (const j of sampleJobs) {
     await connection.query(
-      `INSERT IGNORE INTO jobs (employer_id, title, description, requirements, category, job_type, salary_type, salary_min, salary_max, location, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
+      `INSERT IGNORE INTO jobs (employer_id, title, description, requirements, category, job_type, salary_type, salary_min, salary_max, location, status, work_type, shift_duration, workers_needed)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
       [
         employerIds[j.employer],
         j.title,
-        `Description for ${j.title}. This is a great opportunity for students.`,
-        'Good communication skills, reliable, and eager to learn.',
+        `Description for ${j.title}. This is a great opportunity for students looking to earn and gain experience.`,
+        j.requirements,
         j.category,
         j.type,
         j.salaryType,
         j.min,
         j.max,
-        '123 Main Street, City Center',
+        'Colombo, Sri Lanka',
+        j.workType,
+        j.shiftDuration,
+        j.workersNeeded,
       ]
     );
   }

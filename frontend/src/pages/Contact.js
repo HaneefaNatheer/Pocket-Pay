@@ -11,9 +11,7 @@ import {
   FaInstagram,
   FaFacebook,
   FaChevronDown,
-  FaRocket,
   FaExclamationTriangle,
-  FaArrowRight,
 } from 'react-icons/fa';
 
 function RevealOnScroll({ children, delay = 0 }) {
@@ -47,29 +45,29 @@ const contactInfo = [
   {
     icon: FaEnvelope,
     title: 'Email Us',
-    detail: 'support@pocket-pay.com',
+    detail: 'pocketpayofficial@gmail.com',
     sub: 'We reply within 24 hours',
     color: '#7c3aed',
   },
   {
     icon: FaPhone,
     title: 'Call Us',
-    detail: '+1 (555) 123-4567',
-    sub: 'Mon - Fri, 9am - 6pm EST',
+    detail: '0778797107',
+    sub: 'Mon - Fri, 9am - 6pm',
     color: '#10b981',
   },
   {
     icon: FaMapMarkerAlt,
     title: 'Visit Us',
-    detail: '123 Education Lane',
-    sub: 'San Francisco, CA 94102',
+    detail: 'Yakkala, Gampaha, Sri Lanka',
+    sub: 'Come say hello!',
     color: '#ec4899',
   },
 ];
 
 const officeHours = [
-  { day: 'Monday - Friday', hours: '9:00 AM - 6:00 PM EST' },
-  { day: 'Saturday', hours: '10:00 AM - 2:00 PM EST' },
+  { day: 'Monday - Friday', hours: '9:00 AM - 6:00 PM' },
+  { day: 'Saturday', hours: '10:00 AM - 2:00 PM' },
   { day: 'Sunday', hours: 'Closed' },
 ];
 
@@ -388,14 +386,17 @@ export default function Contact() {
                     <FaMapMarkerAlt className="me-2 text-primary" />
                     Our Location
                   </h5>
-                  <div className="map-placeholder">
-                    <div className="map-inner d-flex align-items-center justify-content-center">
-                      <div className="text-center text-muted">
-                        <FaMapMarkerAlt size={40} className="mb-2 opacity-50" />
-                        <p className="mb-0 small">Interactive Map</p>
-                        <p className="mb-0 small">123 Education Lane, SF</p>
-                      </div>
-                    </div>
+                  <div className="map-placeholder" style={{ padding: 0, overflow: 'hidden', borderRadius: '12px' }}>
+                    <iframe
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.311948893132!2d80.01931131476845!3d7.085581394797126!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae2fbc38b0e4c5d%3A0xa5b3e6c1f3b7e2a1!2sYakkala!5e0!3m2!1sen!2slk!4v1"
+                      width="100%"
+                      height="220"
+                      style={{ border: 0, display: 'block' }}
+                      allowFullScreen=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Yakkala, Gampaha, Sri Lanka"
+                    />
                   </div>
                 </div>
               </RevealOnScroll>

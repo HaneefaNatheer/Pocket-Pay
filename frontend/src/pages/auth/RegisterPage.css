@@ -1,0 +1,41 @@
+.fade-in-down {
+  opacity: 0;
+  animation: fadeInDown 0.6s ease forwards;
+}
+
+.fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.role-card {
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.role-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 25px 50px var(--card-shadow-color, rgba(124, 58, 237, 0.15));
+}

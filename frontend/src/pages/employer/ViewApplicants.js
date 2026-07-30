@@ -38,6 +38,19 @@ const ViewApplicants = () => {
   const [interviewForm, setInterviewForm] = useState({ date: '', time: '', location: '' });
   const [scheduling, setScheduling] = useState(false);
 
+  const normalizeApp = (app) => {
+    const student = app.student || {};
+    return {
+      ...app,
+      _id: app._id || app.id,
+      student: {
+        ...student,
+        _id: student._id || student.id,
+        name: student.user?.name || student.name || 'N/A',
+      },
+    };
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -46,9 +59,10 @@ const ViewApplicants = () => {
           employerService.getJobApplicants(jobId),
         ]);
         const jobList = jobRes.data?.data || jobRes.data || [];
-        const foundJob = jobList.find((j) => j._id === jobId);
+        const foundJob = jobList.find((j) => (j.id || j._id) == jobId);
         setJob(foundJob || null);
-        setApplicants(appsRes.data?.data || appsRes.data || []);
+        const rawApps = appsRes.data?.data || appsRes.data || [];
+        setApplicants(rawApps.map(normalizeApp));
       } catch (err) {
         toast.error('Failed to load applicants.');
       } finally {
@@ -66,7 +80,7 @@ const ViewApplicants = () => {
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter((a) => {
-        const name = a.student?.name || a.user?.name || '';
+        const name = a.student?.name || '';
         const uni = a.student?.university || '';
         return name.toLowerCase().includes(q) || uni.toLowerCase().includes(q);
       });
@@ -248,10 +262,11 @@ const ViewApplicants = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredApplicants.map((app) => {
-                  const student = app.student || app.user || {};
+                  {filteredApplicants.map((app) => {
+                  const student = app.student || {};
+                  const appId = app.id || app._id;
                   return (
-                    <tr key={app._id}>
+                    <tr key={appId}>
                       <td className="fw-semibold">
                         <div className="d-flex align-items-center">
                           <div
@@ -260,7 +275,7 @@ const ViewApplicants = () => {
                           >
                             <BsPerson className="text-primary" />
                           </div>
-                          {student.name || 'N/A'}
+                          {student.name}
                         </div>
                       </td>
                       <td className="text-muted small">{student.university || 'N/A'}</td>
@@ -278,7 +293,7 @@ const ViewApplicants = () => {
                           className={`form-select form-select-sm ${statusBadge(app.status).split(' ')[0]}`}
                           style={{ width: 'auto', color: '#fff', minWidth: 120 }}
                           value={app.status?.toLowerCase() || 'pending'}
-                          onChange={(e) => handleStatusUpdate(app._id, e.target.value)}
+                          onChange={(e) => handleStatusUpdate(appId, e.target.value)}
                         >
                           {STATUS_OPTIONS.map((s) => (
                             <option key={s} value={s} style={{ color: '#000', backgroundColor: '#fff' }}>
@@ -305,7 +320,7 @@ const ViewApplicants = () => {
                           </button>
                           <button
                             className="btn btn-outline-info"
-                            onClick={() => setInterviewModal({ show: true, applicationId: app._id })}
+                            onClick={() => setInterviewModal({ show: true, applicationId: appId })}
                             title="Schedule Interview"
                           >
                             <BsCalendarEvent />
@@ -356,8 +371,8 @@ const ViewApplicants = () => {
                   <BsPerson size={28} className="text-primary" />
                 </div>
                 <div>
-                  <h5 className="fw-bold mb-0">{profileModal.student.name}</h5>
-                  <small className="text-muted">{profileModal.student.email}</small>
+                  <h5 className="fw-bold mb-0">{profileModal.student.name || 'N/A'}</h5>
+                  <small className="text-muted">{profileModal.student.user?.email || profileModal.student.email || ''}</small>
                 </div>
               </div>
               <div className="row g-3">

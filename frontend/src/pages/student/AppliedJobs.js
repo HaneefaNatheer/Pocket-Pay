@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import useFetch from '../../hooks/useFetch';
 import { applicationService } from '../../services/applicationService';
 import { BsEye, BsXCircle, BsBriefcase, BsSortDown } from 'react-icons/bs';
 import { toast } from 'react-toastify';
@@ -21,12 +19,27 @@ const statusBadge = (status) => {
 };
 
 const AppliedJobs = () => {
-  const { data: applications, loading, refetch } = useFetch('/applications/my');
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState(null);
   const [withdrawing, setWithdrawing] = useState(false);
   const [viewMode, setViewMode] = useState('table');
+
+  const fetchApps = async () => {
+    setLoading(true);
+    try {
+      const res = await applicationService.getMyApplications();
+      setApplications(res.data?.data || res.data || []);
+    } catch {
+      toast.error('Failed to load applications.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchApps(); }, []);
 
   const filteredApps = applications?.filter((app) =>
     filterStatus === 'all' || app.status?.toLowerCase() === filterStatus
@@ -42,7 +55,7 @@ const AppliedJobs = () => {
       toast.success('Application withdrawn.');
       setShowWithdrawModal(false);
       setSelectedAppId(null);
-      refetch();
+      fetchApps();
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to withdraw application.');
     } finally {

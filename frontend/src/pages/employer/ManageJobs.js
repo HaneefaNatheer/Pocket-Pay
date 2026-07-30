@@ -36,10 +36,17 @@ const ManageJobs = () => {
   const [deleting, setDeleting] = useState(false);
   const [bulkAction, setBulkAction] = useState('');
 
+  const normalize = (item) => ({
+    ...item,
+    _id: item._id || item.id,
+    applicationCount: item.applicationCount || item.current_applicants || 0,
+  });
+
   const fetchJobs = async () => {
     try {
       const res = await employerService.getMyJobs();
-      setJobs(res.data?.data || res.data || []);
+      const raw = res.data?.data || res.data || [];
+      setJobs(raw.map(normalize));
     } catch (err) {
       toast.error('Failed to load jobs.');
     } finally {

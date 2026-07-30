@@ -57,10 +57,14 @@ const demoAnalytics = [
 ];
 
 const demoPostings = [
-  { id: 1, title: 'Barista', company: 'Cafe Bloom', applicants: 12, views: 130, status: 'Active', salary: 'LKR 25,000/mo', shiftDuration: '4 hrs', workType: 'Daily', days: 'Mon-Sat', workersNeeded: 3, workersHired: 1, posted: 'Aug 1, 2026' },
-  { id: 2, title: 'Web Developer', company: 'TechNova Ltd', applicants: 8, views: 95, status: 'Active', salary: 'LKR 800/hr', shiftDuration: 'Flexible', workType: 'Flexible', days: 'Flexible', workersNeeded: 1, workersHired: 0, posted: 'Aug 3, 2026' },
-  { id: 3, title: 'Delivery Rider', company: 'QuickDeliver', applicants: 20, views: 210, status: 'Paused', salary: 'LKR 1,200/day', shiftDuration: '8 hrs', workType: 'Daily', days: 'Mon-Sun', workersNeeded: 4, workersHired: 2, posted: 'Jul 28, 2026' },
-  { id: 4, title: 'Office Assistant', company: 'ABC Corp', applicants: 5, views: 60, status: 'Closed', salary: 'LKR 22,000/mo', shiftDuration: '6 hrs', workType: 'Daily', days: 'Mon-Fri', workersNeeded: 1, workersHired: 1, posted: 'Jul 20, 2026' },
+  { id: 1, title: 'Construction Site Helper', company: 'BuildRight Construction', applicants: 9, views: 120, status: 'Active', salary: 'LKR 2,500/day', shiftDuration: '8 hrs', workType: 'Daily', days: 'Mon-Sat', workersNeeded: 5, workersHired: 2, posted: 'Aug 1, 2026', category: 'daily-wage' },
+  { id: 2, title: 'Brand Promoter', company: 'Max Marketing Agency', applicants: 15, views: 200, status: 'Active', salary: 'LKR 500/hr', shiftDuration: '8 hrs', workType: 'Daily', days: 'Fri-Sun', workersNeeded: 4, workersHired: 1, posted: 'Aug 3, 2026', category: 'promotion' },
+  { id: 3, title: 'Mathematics Tutor', company: 'Bright Minds Academy', applicants: 7, views: 85, status: 'Active', salary: 'LKR 1,000/hr', shiftDuration: '2 hrs', workType: 'Flexible', days: 'Mon-Fri', workersNeeded: 2, workersHired: 0, posted: 'Aug 2, 2026', category: 'education' },
+  { id: 4, title: 'Data Entry Assistant', company: 'ABC Business Solutions', applicants: 5, views: 60, status: 'Closed', salary: 'LKR 28,000/mo', shiftDuration: '8 hrs', workType: 'Daily', days: 'Mon-Fri', workersNeeded: 2, workersHired: 2, posted: 'Jul 20, 2026', category: 'office-support' },
+  { id: 5, title: 'Food Delivery Rider', company: 'QuickDeliver', applicants: 20, views: 210, status: 'Paused', salary: 'LKR 1,200/day', shiftDuration: '8 hrs', workType: 'Daily', days: 'Mon-Sun', workersNeeded: 5, workersHired: 2, posted: 'Jul 28, 2026', category: 'delivery-transport' },
+  { id: 6, title: 'Retail Sales Assistant', company: 'City Mart Supermarket', applicants: 12, views: 130, status: 'Active', salary: 'LKR 400/hr', shiftDuration: '8 hrs', workType: 'Daily', days: 'Mon-Sat', workersNeeded: 4, workersHired: 1, posted: 'Aug 1, 2026', category: 'retail' },
+  { id: 7, title: 'Hotel Housekeeping Staff', company: 'Grand Ceylon Hotel', applicants: 6, views: 90, status: 'Active', salary: 'LKR 500/hr', shiftDuration: '8 hrs', workType: 'Daily', days: 'Flexible', workersNeeded: 4, workersHired: 1, posted: 'Aug 4, 2026', category: 'hotel-tourism' },
+  { id: 8, title: 'Graphic Designer - Social Media', company: 'Creative Studio', applicants: 4, views: 55, status: 'Active', salary: 'LKR 20,000/project', shiftDuration: 'Flexible', workType: 'Freelance', days: 'Flexible', workersNeeded: 1, workersHired: 0, posted: 'Aug 5, 2026', category: 'freelance' },
 ];
 
 const postJobSections = [
@@ -236,10 +240,10 @@ export default function EmployerServices() {
                   Employer Services
                 </span>
                 <h1 className="hero-title mb-3">
-                  Post Jobs. <span className="text-gradient">Hire Talent.</span>
+                  Post Jobs & <span className="text-gradient">Hire Students</span>
                 </h1>
                 <p className="hero-subtitle mb-0">
-                  Everything an employer needs to post jobs, manage listings, and hire talented students.
+                  Post shop assistant, waiter, delivery rider, cashier, and more — hire talented students on your schedule.
                 </p>
               </AnimSection>
             </div>
@@ -256,7 +260,7 @@ export default function EmployerServices() {
                 <FaChartLine className="me-2" />Overview
               </span>
               <h2 className="section-title">Employer <span className="text-gradient">Dashboard</span></h2>
-              <p className="section-subtitle">After login, your posted jobs and stats appear here at a glance.</p>
+              <p className="section-subtitle">Post daily wage, part-time, and freelance jobs — manage listings and hire students at a glance.</p>
             </div>
           </AnimSection>
 
@@ -456,7 +460,7 @@ export default function EmployerServices() {
                     <div className="row g-3">
                       <div className="col-md-6"><label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Job Title *</label><input type="text" className="form-control rounded-3" name="title" value={form.title} onChange={handleChange} placeholder="e.g. Barista, Web Developer" /></div>
                       <div className="col-md-6"><label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Company Name</label><input type="text" className="form-control rounded-3" value={profile?.company_name || 'Loading...'} disabled style={{ background: '#f8fafc' }} /></div>
-                      <div className="col-md-4"><label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Job Category *</label><select className="form-select rounded-3" name="category" value={form.category} onChange={handleChange}><option value="">Select category</option><option value="food-service">Food & Beverage</option><option value="tech">IT & Technology</option><option value="delivery">Delivery</option><option value="tutoring">Education</option><option value="retail">Retail</option><option value="creative">Creative</option><option value="admin">Admin</option><option value="part-time">Part-Time</option><option value="freelance">Freelance</option></select></div>
+                      <div className="col-md-4"><label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Job Category *</label><select className="form-select rounded-3" name="category" value={form.category} onChange={handleChange}><option value="">Select category</option><option value="daily-wage">Daily Wage / Flexible</option><option value="promotion">Promotion & Event</option><option value="education">Education</option><option value="office-support">Office Support</option><option value="delivery-transport">Delivery & Transport</option><option value="retail">Retail</option><option value="hotel-tourism">Hotel & Tourism</option><option value="freelance">Freelance / Skill-Based</option></select></div>
                       <div className="col-md-4"><label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Job Type</label><select className="form-select rounded-3" name="job_type" value={form.job_type} onChange={handleChange}><option value="onsite">On-Site</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option></select></div>
                       <div className="col-md-4"><label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Number of Vacancies</label><input type="number" className="form-control rounded-3" name="workers_needed" value={form.workers_needed} onChange={handleChange} placeholder="e.g. 3" min="1" /></div>
                     </div>

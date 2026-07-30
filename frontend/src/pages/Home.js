@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import heroVideo from '../assets/images/pocket-pay-video.mp4';
+import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import {
   FaRobot,
   FaMapMarkerAlt,
   FaStar,
   FaShieldAlt,
   FaSearch,
-  FaLaptopCode,
   FaStore,
   FaUtensils,
   FaBookReader,
   FaTruck,
-  FaPaintBrush,
   FaClipboardList,
   FaLaptop,
   FaChevronRight,
@@ -25,6 +25,10 @@ import {
   FaUserPlus,
   FaSearchPlus,
   FaHandshake,
+  FaClock,
+  FaBuilding,
+  FaMoneyBillWave,
+  FaEye,
 } from 'react-icons/fa';
 
 function AnimatedCounter({ end, suffix = '' }) {
@@ -68,25 +72,25 @@ const features = [
   {
     icon: FaRobot,
     title: 'Smart Job Matching',
-    description: 'AI-powered algorithm matches your skills and preferences with the perfect job opportunities.',
+    description: 'AI-powered algorithm matches your skills with the perfect daily wage, part-time, or freelance opportunity.',
     color: '#7c3aed',
   },
   {
     icon: FaMapMarkerAlt,
-    title: 'Nearby Jobs',
-    description: 'Find job opportunities close to your campus or home. Save time and maximize your schedule.',
+    title: 'Nearby Flexible Jobs',
+    description: 'Find shop, delivery, event, and office jobs close to your home or campus. Work on your schedule.',
     color: '#ec4899',
   },
   {
     icon: FaStar,
-    title: 'Skill Matching',
-    description: 'Highlight your unique skills and get matched with employers who need exactly what you offer.',
+    title: 'Instant Apply',
+    description: 'Apply to retail, restaurant, tutoring, and warehouse jobs with one click — no complicated forms.',
     color: '#f59e0b',
   },
   {
     icon: FaShieldAlt,
     title: 'Verified Employers',
-    description: 'Every employer is verified and reviewed. Work with confidence and safety.',
+    description: 'Every employer is verified. Work with confidence at shops, hotels, restaurants, and more.',
     color: '#10b981',
   },
 ];
@@ -113,49 +117,76 @@ const steps = [
 ];
 
 const categories = [
-  { icon: FaLaptopCode, name: 'Tech', slug: 'tech', color: '#7c3aed' },
-  { icon: FaStore, name: 'Retail', slug: 'retail', color: '#ec4899' },
-  { icon: FaUtensils, name: 'Food Service', slug: 'food-service', color: '#f59e0b' },
-  { icon: FaBookReader, name: 'Tutoring', slug: 'tutoring', color: '#10b981' },
-  { icon: FaTruck, name: 'Delivery', slug: 'delivery', color: '#3b82f6' },
-  { icon: FaPaintBrush, name: 'Creative', slug: 'creative', color: '#8b5cf6' },
-  { icon: FaClipboardList, name: 'Admin', slug: 'admin', color: '#f97316' },
-  { icon: FaLaptop, name: 'Remote', slug: 'remote', color: '#06b6d4' },
+  { icon: FaBriefcase, name: 'Daily Wage / Flexible', slug: 'daily-wage', color: '#7c3aed' },
+  { icon: FaStar, name: 'Promotion & Event', slug: 'promotion', color: '#ec4899' },
+  { icon: FaBookReader, name: 'Education', slug: 'education', color: '#10b981' },
+  { icon: FaClipboardList, name: 'Office Support', slug: 'office-support', color: '#f59e0b' },
+  { icon: FaTruck, name: 'Delivery & Transport', slug: 'delivery-transport', color: '#3b82f6' },
+  { icon: FaStore, name: 'Retail', slug: 'retail', color: '#8b5cf6' },
+  { icon: FaUtensils, name: 'Hotel & Tourism', slug: 'hotel-tourism', color: '#f97316' },
+  { icon: FaLaptop, name: 'Freelance / Skill', slug: 'freelance', color: '#06b6d4' },
 ];
 
 const testimonials = [
   {
-    name: 'Sarah Mitchell',
-    university: 'University of California, Berkeley',
-    avatar: 'SM',
+    name: 'Kavindi Perera',
+    university: 'University of Colombo',
+    avatar: 'KP',
     rating: 5,
-    text: 'Pocket-Pay helped me find a part-time web development role that perfectly fits my schedule. The skill matching feature is incredible!',
+    text: 'Found a shop assistant job near my home through Pocket-Pay. The daily wage system fits perfectly around my class schedule. No more asking parents for money!',
   },
   {
-    name: 'James Rodriguez',
-    university: 'New York University',
-    avatar: 'JR',
+    name: 'Rashmika Fernando',
+    university: 'University of Moratuwa',
+    avatar: 'RF',
     rating: 5,
-    text: 'I was struggling to find flexible work near campus. Within a week of signing up, I had three interview offers. Best platform for students!',
+    text: 'I was looking for weekend waiter work to support myself. Within days I got hired at a restaurant. Flexible hours, good pay, and the employer was fully verified.',
   },
   {
-    name: 'Emily Chen',
-    university: 'Stanford University',
-    avatar: 'EC',
+    name: 'Thanuja Seneviratne',
+    university: 'University of Peradeniya',
+    avatar: 'TS',
     rating: 5,
-    text: 'The verified employers gave me peace of mind. I found a tutoring job that pays well and builds my resume. Highly recommended!',
+    text: 'Started as a home tutor through Pocket-Pay. Now I have 3 regular students and earn enough to cover my expenses. Perfect for students who want to earn while learning.',
   },
 ];
 
 const stats = [
-  { icon: FaBriefcase, value: 500, suffix: '+', label: 'Jobs Available' },
+  { icon: FaBriefcase, value: 500, suffix: '+', label: 'Daily Wage / Part-Time Jobs' },
   { icon: FaUsers, value: 200, suffix: '+', label: 'Trusted Employers' },
-  { icon: FaUserGraduate, value: 1000, suffix: '+', label: 'Students Connected' },
+  { icon: FaUserGraduate, value: 1000, suffix: '+', label: 'Students Earning' },
 ];
 
 export default function Home() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [recentJobs, setRecentJobs] = useState([]);
+  const [promptType, setPromptType] = useState(null);
+  const [recentLoading, setRecentLoading] = useState(true);
+
+  const fetchRecentJobs = useCallback(async () => {
+    try {
+      const res = await api.get('/jobs?limit=6&sort=created_at&order=desc');
+      const data = (res.data.data || []).map(job => ({
+        id: job.id,
+        title: job.title,
+        company: job.employer?.company_name || 'Company',
+        location: job.location || 'Not specified',
+        salary: job.salary_min ? `LKR ${Number(job.salary_min).toLocaleString()}${job.salary_type === 'hourly' ? '/hr' : job.salary_type === 'daily' ? '/day' : job.salary_type === 'fixed' ? '/project' : '/mo'}` : 'Negotiable',
+        category: job.category,
+        tags: Array.isArray(job.required_skills) ? job.required_skills : (job.required_skills ? JSON.parse(job.required_skills) : []),
+        workersNeeded: job.workers_needed || 1,
+        workersHired: job.workers_hired || 0,
+      }));
+      setRecentJobs(data);
+    } catch {
+      setRecentJobs([]);
+    }
+    setRecentLoading(false);
+  }, []);
+
+  useEffect(() => { fetchRecentJobs(); }, [fetchRecentJobs]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -165,7 +196,11 @@ export default function Home() {
   };
 
   const handleCategoryClick = (slug) => {
-    navigate(`/jobs?category=${slug}`);
+    if (user?.role === 'student') {
+      navigate(`/services/student?category=${slug}`);
+    } else {
+      setPromptType('student');
+    }
   };
 
   return (
@@ -190,15 +225,15 @@ export default function Home() {
             <div className="col-lg-8 text-center">
               <span className="hero-badge mb-4">
                 <FaRocket className="me-2" />
-                Trusted by 1000+ Students
+                Lanka&apos;s #1 Student Job Platform
               </span>
               <h1 className="hero-title mb-3">
-                Find Your Perfect
+                Find Daily Wage &
                 <br />
-                <span className="text-gradient">Part-Time Job</span>
+                <span className="text-gradient">Part-Time Jobs</span>
               </h1>
               <p className="hero-subtitle mb-4">
-                Connect with trusted employers. Build your career while studying.
+                Shop assistant, delivery rider, cashier, waiter, data entry — connect with trusted employers near you.
               </p>
               <form onSubmit={handleSearch} className="hero-search mx-auto mb-4">
                 <div className="input-group input-group-lg shadow-lg">
@@ -217,18 +252,7 @@ export default function Home() {
                   </button>
                 </div>
               </form>
-              <div className="hero-tags d-flex gap-2 justify-content-center flex-wrap">
-                {['Web Development', 'Tutoring', 'Data Entry', 'Design'].map((tag) => (
-                  <span
-                    key={tag}
-                    className="badge bg-white bg-opacity-10 border border-white border-opacity-20"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => navigate(`/jobs?search=${encodeURIComponent(tag)}`)}
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
+
             </div>
           </div>
         </div>
@@ -240,7 +264,7 @@ export default function Home() {
           <div className="row g-4 justify-content-center">
             {stats.map((stat, index) => (
               <div key={index} className="col-md-4">
-                <div className="stats-card text-center p-4">
+                <div className="stats-card text-center p-4 h-100">
                   <div className="stats-icon mb-3">
                     <stat.icon size={36} />
                   </div>
@@ -266,7 +290,7 @@ export default function Home() {
               <span className="text-gradient">The Right Job</span>
             </h2>
             <p className="section-subtitle">
-              Powerful features designed specifically for students looking for part-time opportunities.
+              Daily wage jobs, part-time shifts, and freelance gigs — designed for students who want to earn while studying.
             </p>
           </div>
           <div className="row g-4">
@@ -294,7 +318,7 @@ export default function Home() {
               How It <span className="text-gradient">Works</span>
             </h2>
             <p className="section-subtitle">
-              Get started in three easy steps and land your dream part-time job.
+              Create your profile, find daily wage or part-time jobs near you, and start earning in 3 simple steps.
             </p>
           </div>
           <div className="row g-4 align-items-start">
@@ -328,7 +352,7 @@ export default function Home() {
               Explore Job <span className="text-gradient">Categories</span>
             </h2>
             <p className="section-subtitle">
-              Find opportunities in the field that matches your skills and interests.
+              From shop assistant to delivery rider, tutor to event staff — explore jobs that fit your schedule.
             </p>
           </div>
           <div className="row g-3 justify-content-center">
@@ -358,7 +382,7 @@ export default function Home() {
               What Students <span className="text-gradient">Say</span>
             </h2>
             <p className="section-subtitle">
-              Hear from students who found their perfect part-time jobs.
+              Real students earning real money — hear how Pocket-Pay helped them find daily wage and part-time jobs.
             </p>
           </div>
           <div className="row g-4">
@@ -399,22 +423,54 @@ export default function Home() {
             <div className="d-flex gap-3 justify-content-center flex-wrap">
               <button
                 className="btn btn-white btn-lg px-5"
-                onClick={() => navigate('/register/student')}
+                onClick={() => { if (user) { navigate('/services/student'); } else { setPromptType('student'); } }}
               >
                 <FaUserGraduate className="me-2" />
-                Register as Student
+                {user ? 'Student Services' : 'Register as Student'}
               </button>
               <button
                 className="btn btn-outline-light btn-lg px-5"
-                onClick={() => navigate('/register/employer')}
+                onClick={() => { if (user) { navigate('/services/employer'); } else { setPromptType('employer'); } }}
               >
                 <FaBriefcase className="me-2" />
-                Register as Employer
+                {user ? 'Employer Services' : 'Register as Employer'}
               </button>
             </div>
           </div>
         </div>
       </section>
+      {/* Login Prompt Modal */}
+      {promptType && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, backdropFilter: 'blur(4px)' }}
+          onClick={() => setPromptType(null)}>
+          <div style={{ background: '#fff', borderRadius: 20, maxWidth: 420, width: '100%', padding: 32, textAlign: 'center', boxShadow: '0 24px 80px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', background: promptType === 'employer' ? '#eff6ff' : '#fef2f2' }}>
+              <FaBriefcase size={28} style={{ color: promptType === 'employer' ? '#2563eb' : '#ef4444' }} />
+            </div>
+            <h5 className="fw-bold mb-2">Login Required</h5>
+            <p className="text-muted mb-4" style={{ fontSize: '0.9rem' }}>
+              {promptType === 'employer'
+                ? 'Please log in as an employer to post jobs and hire students. Don&apos;t have an account? Register for free!'
+                : 'Please log in as a student to browse and apply for jobs. Don&apos;t have an account? Register for free!'}
+            </p>
+            <div className="d-flex gap-2 justify-content-center">
+              <button className="btn rounded-pill px-4 fw-semibold py-2" style={{ background: promptType === 'employer' ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: '#fff', border: 'none' }}
+                onClick={() => { setPromptType(null); navigate('/login'); }}>
+                Login
+              </button>
+              <button className="btn rounded-pill px-4 fw-semibold py-2" style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}
+                onClick={() => { setPromptType(null); navigate(promptType === 'employer' ? '/register/employer' : '/register/student'); }}>
+                Register
+              </button>
+              <button className="btn rounded-pill px-3 fw-semibold py-2" style={{ background: 'transparent', color: '#94a3b8', border: 'none' }}
+                onClick={() => setPromptType(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

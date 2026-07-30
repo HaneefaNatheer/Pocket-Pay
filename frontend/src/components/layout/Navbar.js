@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Navbar as BSNavbar, Nav, Container, Button } from 'react-bootstrap';
-import { FiSun, FiMoon, FiUser, FiLogOut, FiSettings, FiMoreVertical, FiGrid, FiBookmark, FiFileText, FiChevronRight, FiBell } from 'react-icons/fi';
+import { FiSun, FiMoon, FiUser, FiLogOut, FiSettings, FiGrid, FiBookmark, FiFileText, FiBell, FiChevronRight } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import NotificationBell from '../common/NotificationBell';
 import pocketPayLogo from '../../assets/images/pocket-pay-logo.png';
 
 const Navbar = () => {
@@ -85,11 +84,19 @@ const Navbar = () => {
 
             {isAuthenticated ? (
               <>
-                <NotificationBell />
-
-                <div className="pp-dot-menu-wrapper" ref={dotRef}>
-                  <button className="pp-dot-toggle" onClick={() => setDotOpen(!dotOpen)}>
-                    <FiMoreVertical size={20} />
+                <div className="pp-profile-trigger-wrapper" ref={dotRef}>
+                  <button className="pp-profile-trigger" onClick={() => setDotOpen(!dotOpen)}>
+                    <div className="pp-profile-avatar">
+                      {user?.profile_picture ? (
+                        <img src={`http://localhost:5000/${user.profile_picture}`} alt={user.name} />
+                      ) : (
+                        <span>{getInitials(user?.name)}</span>
+                      )}
+                    </div>
+                    <div className="pp-profile-info">
+                      <div className="pp-profile-name">{user?.name}</div>
+                      <div className="pp-profile-role">{user?.role}</div>
+                    </div>
                   </button>
 
                   {dotOpen && (
@@ -97,10 +104,7 @@ const Navbar = () => {
                       <div className="pp-dot-header">
                         <div className="pp-dot-avatar">
                           {user?.profile_picture ? (
-                            <img
-                              src={`http://localhost:5000/${user.profile_picture}`}
-                              alt={user.name}
-                            />
+                            <img src={`http://localhost:5000/${user.profile_picture}`} alt={user.name} />
                           ) : (
                             <span>{getInitials(user?.name)}</span>
                           )}
@@ -113,75 +117,16 @@ const Navbar = () => {
 
                       <div className="pp-dot-divider" />
 
-                      {user?.role === 'student' && (
-                        <>
-                          <Link to="/student/dashboard" className="pp-dot-item" onClick={() => { setDotOpen(false); closeNav(); }}>
-                            <FiGrid className="pp-dot-icon" />
-                            <span>Dashboard</span>
-                            <FiChevronRight className="pp-dot-arrow" />
-                          </Link>
-                          <Link to="/student/saved-jobs" className="pp-dot-item" onClick={() => { setDotOpen(false); closeNav(); }}>
-                            <FiBookmark className="pp-dot-icon" />
-                            <span>Saved Jobs</span>
-                            <FiChevronRight className="pp-dot-arrow" />
-                          </Link>
-                          <Link to="/student/applied-jobs" className="pp-dot-item" onClick={() => { setDotOpen(false); closeNav(); }}>
-                            <FiFileText className="pp-dot-icon" />
-                            <span>Applied Jobs</span>
-                            <FiChevronRight className="pp-dot-arrow" />
-                          </Link>
-                        </>
-                      )}
-
-                      {user?.role === 'employer' && (
-                        <>
-                          <Link to="/employer/dashboard" className="pp-dot-item" onClick={() => { setDotOpen(false); closeNav(); }}>
-                            <FiGrid className="pp-dot-icon" />
-                            <span>Dashboard</span>
-                            <FiChevronRight className="pp-dot-arrow" />
-                          </Link>
-                          <Link to="/employer/post-job" className="pp-dot-item" onClick={() => { setDotOpen(false); closeNav(); }}>
-                            <FiFileText className="pp-dot-icon" />
-                            <span>Post Job</span>
-                            <FiChevronRight className="pp-dot-arrow" />
-                          </Link>
-                          <Link to="/employer/manage-jobs" className="pp-dot-item" onClick={() => { setDotOpen(false); closeNav(); }}>
-                            <FiSettings className="pp-dot-icon" />
-                            <span>Manage Jobs</span>
-                            <FiChevronRight className="pp-dot-arrow" />
-                          </Link>
-                        </>
-                      )}
-
-                      {user?.role === 'admin' && (
-                        <>
-                          <Link to="/admin/dashboard" className="pp-dot-item" onClick={() => { setDotOpen(false); closeNav(); }}>
-                            <FiGrid className="pp-dot-icon" />
-                            <span>Dashboard</span>
-                            <FiChevronRight className="pp-dot-arrow" />
-                          </Link>
-                          <Link to="/admin/students" className="pp-dot-item" onClick={() => { setDotOpen(false); closeNav(); }}>
-                            <FiUser className="pp-dot-icon" />
-                            <span>Students</span>
-                            <FiChevronRight className="pp-dot-arrow" />
-                          </Link>
-                          <Link to="/admin/employers" className="pp-dot-item" onClick={() => { setDotOpen(false); closeNav(); }}>
-                            <FiUser className="pp-dot-icon" />
-                            <span>Employers</span>
-                            <FiChevronRight className="pp-dot-arrow" />
-                          </Link>
-                          <Link to="/admin/jobs" className="pp-dot-item" onClick={() => { setDotOpen(false); closeNav(); }}>
-                            <FiFileText className="pp-dot-icon" />
-                            <span>Jobs</span>
-                            <FiChevronRight className="pp-dot-arrow" />
-                          </Link>
-                          <Link to="/admin/reports" className="pp-dot-item" onClick={() => { setDotOpen(false); closeNav(); }}>
-                            <FiSettings className="pp-dot-icon" />
-                            <span>Reports</span>
-                            <FiChevronRight className="pp-dot-arrow" />
-                          </Link>
-                        </>
-                      )}
+                      <Link to={`/${user?.role}/dashboard`} className="pp-dot-item" onClick={() => { setDotOpen(false); closeNav(); }}>
+                        <FiGrid className="pp-dot-icon" />
+                        <span>Dashboard</span>
+                        <FiChevronRight className="pp-dot-arrow" />
+                      </Link>
+                      <Link to="/notifications" className="pp-dot-item" onClick={() => { setDotOpen(false); closeNav(); }}>
+                        <FiBell className="pp-dot-icon" />
+                        <span>Notifications</span>
+                        <FiChevronRight className="pp-dot-arrow" />
+                      </Link>
 
                       <div className="pp-dot-divider" />
 

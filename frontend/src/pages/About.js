@@ -87,7 +87,7 @@ function CountUp({ end, suffix = '' }) {
 const teamMembers = [
   {
     name: 'M.H.M. Natheer',
-    role: 'Team Leader',
+    role: 'Developer &  Leader',
     bio: 'Led the development team and contributed to both frontend and backend of the Pocket-Pay platform.',
     image: natheerImg,
     color: '#7c3aed',
@@ -106,7 +106,7 @@ const teamMembers = [
     role: 'Developer & Member',
     bio: 'Involved in full-stack development including UI design and API implementation.',
     image: elanImg,
-    color: '#10b981',
+    color: '#f59e0b',
     delay: 0.3,
   },
   {
@@ -114,7 +114,7 @@ const teamMembers = [
     role: 'Developer & Member',
     bio: 'Handled frontend components, backend services, and database management.',
     image: manojImg,
-    color: '#f59e0b',
+    color: '#10b981',
     delay: 0.45,
   },
 ];

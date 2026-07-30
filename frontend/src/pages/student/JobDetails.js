@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { jobService } from '../../services/jobService';
 import { applicationService } from '../../services/applicationService';
-import { BsArrowLeft, BsBookmarkHeart, BsBookmarkFill, BsGeoAlt, BsClock, BsCalendar, BsBuilding, BsCheckCircle, BsExclamationCircle } from 'react-icons/bs';
+import { BsArrowLeft, BsBookmarkHeart, BsBookmarkFill, BsGeoAlt, BsClock, BsBuilding, BsCheckCircle } from 'react-icons/bs';
 import { toast } from 'react-toastify';
 import { Modal, Button, Form } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -24,15 +24,16 @@ const JobDetails = () => {
     const fetchJob = async () => {
       try {
         const res = await jobService.getById(id);
-        setJob(res.data);
-        setSaved(res.data?.isSaved || false);
-        if (res.data?.category) {
-          const relRes = await jobService.getAll({ category: res.data.category, limit: 4 });
-          setRelatedJobs((relRes.data?.jobs || relRes.data || []).filter((j) => j._id !== id).slice(0, 3));
+        const jobData = res.data?.data || res.data;
+        setJob(jobData);
+        setSaved(jobData?.isSaved || false);
+        if (jobData?.category) {
+          const relRes = await jobService.getAll({ category: jobData.category, limit: 4 });
+          setRelatedJobs((relRes.data?.data || relRes.data || []).filter((j) => j.id !== id && j._id !== id).slice(0, 3));
         }
       } catch (err) {
-        toast.error('Failed to load job details.');
-        navigate(-1);
+        toast.error(err?.response?.data?.message || 'Failed to load job details.');
+        if (err?.response?.status !== 404) navigate(-1);
       } finally {
         setLoading(false);
       }
@@ -59,7 +60,7 @@ const JobDetails = () => {
   const handleApply = async () => {
     setApplying(true);
     try {
-      await applicationService.apply(id, { coverLetter });
+      await applicationService.apply({ job_id: id, cover_letter: coverLetter });
       toast.success('Application submitted!');
       setShowApplyModal(false);
       setCoverLetter('');
@@ -100,8 +101,8 @@ const JobDetails = () => {
                   <h3 className="fw-bold mb-1">{job.title}</h3>
                   <p className="text-muted mb-2 d-flex align-items-center">
                     <BsBuilding className="me-1" />
-                    {job.company?.name}
-                    {job.company?.verified && <BsCheckCircle className="ms-1 text-primary" />}
+                    {job.employer?.company_name || job.company?.name}
+                    {(job.employer?.is_verified || job.company?.verified) && <BsCheckCircle className="ms-1 text-primary" />}
                   </p>
                 </div>
                 <button className="btn btn-outline-danger btn-sm" onClick={handleSave}>
@@ -128,8 +129,8 @@ const JobDetails = () => {
                 )}
               </div>
 
-              {job.company?.logo && (
-                <img src={job.company.logo} alt={job.company.name} className="mb-3" style={{ maxHeight: 60 }} />
+              {(job.employer?.company_logo || job.company?.logo) && (
+                <img src={job.employer?.company_logo || job.company?.logo} alt={job.employer?.company_name || job.company?.name} className="mb-3" style={{ maxHeight: 60 }} />
               )}
 
               <div className="mb-4">
@@ -199,7 +200,7 @@ const JobDetails = () => {
                   height="200"
                   frameBorder="0"
                   style={{ border: 0 }}
-                  src={`https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${encodeURIComponent(job.location || 'New York')}`}
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(job.location || 'Sri Lanka')}&output=embed`}
                   allowFullScreen
                 ></iframe>
               </div>
@@ -214,17 +215,19 @@ const JobDetails = () => {
               <h5 className="mb-0 fw-semibold">Company Info</h5>
             </div>
             <div className="card-body text-center">
-              {job.company?.logo ? (
+              {job.employer?.company_logo ? (
+                <img src={job.employer.company_logo} alt={job.employer.company_name} className="mb-3 rounded" style={{ maxHeight: 60 }} />
+              ) : job.company?.logo ? (
                 <img src={job.company.logo} alt={job.company.name} className="mb-3 rounded" style={{ maxHeight: 60 }} />
               ) : (
                 <div className="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style={{ width: 60, height: 60 }}>
                   <BsBuilding size={24} className="text-primary" />
                 </div>
               )}
-              <h5 className="fw-semibold">{job.company?.name}</h5>
-              {job.company?.verified && <span className="badge bg-primary mb-2"><BsCheckCircle className="me-1" />Verified</span>}
-              {job.company?.description && (
-                <p className="text-muted small">{job.company.description}</p>
+              <h5 className="fw-semibold">{job.employer?.company_name || job.company?.name}</h5>
+              {(job.employer?.is_verified || job.company?.verified) && <span className="badge bg-primary mb-2"><BsCheckCircle className="me-1" />Verified</span>}
+              {(job.employer?.company_description || job.company?.description) && (
+                <p className="text-muted small">{job.employer?.company_description || job.company?.description}</p>
               )}
             </div>
           </div>
@@ -243,7 +246,7 @@ const JobDetails = () => {
                       </div>
                       <div>
                         <h6 className="mb-0 small fw-semibold text-dark">{rj.title}</h6>
-                        <small className="text-muted">{rj.company?.name}</small>
+                        <small className="text-muted">{rj.employer?.company_name || rj.company?.name}</small>
                       </div>
                     </div>
                   </Link>

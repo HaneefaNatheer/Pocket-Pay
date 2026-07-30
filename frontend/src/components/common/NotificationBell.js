@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Dropdown, Badge, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { FiBell, FiCheck, FiMail, FiAlertCircle, FiInfo } from 'react-icons/fi';
+import { FiBell, FiCheck, FiMail, FiAlertCircle, FiInfo, FiBriefcase, FiUserCheck, FiCalendar } from 'react-icons/fi';
 import { notificationService } from '../../services/notificationService';
 
 const iconMap = {
@@ -10,6 +10,10 @@ const iconMap = {
   warning: <FiAlertCircle className="text-warning" />,
   error: <FiAlertCircle className="text-danger" />,
   message: <FiMail className="text-info" />,
+  application: <FiBriefcase className="text-primary" />,
+  job: <FiBriefcase className="text-warning" />,
+  interview: <FiCalendar className="text-info" />,
+  system: <FiInfo className="text-secondary" />,
 };
 
 const timeAgo = (date) => {
@@ -32,13 +36,10 @@ const NotificationBell = () => {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const response = await notificationService.getNotifications({ limit: 10 });
-      const data = response.data?.notifications || response.notifications || response.data || [];
+      const { data, unreadCount: count } = await notificationService.getNotifications({ limit: 10 });
       setNotifications(Array.isArray(data) ? data.slice(0, 10) : []);
-      const count = response.data?.unreadCount ?? response.unreadCount ?? 0;
       setUnreadCount(count);
     } catch (err) {
-      // silently fail
     }
   }, []);
 
@@ -52,10 +53,9 @@ const NotificationBell = () => {
     setLoading(true);
     try {
       await notificationService.markAllAsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true, is_read: true })));
       setUnreadCount(0);
     } catch (err) {
-      // silently fail
     } finally {
       setLoading(false);
     }
@@ -65,11 +65,10 @@ const NotificationBell = () => {
     try {
       await notificationService.markAsRead(id);
       setNotifications((prev) =>
-        prev.map((n) => (n._id === id ? { ...n, read: true } : n))
+        prev.map((n) => (n.id === id ? { ...n, read: true, is_read: true } : n))
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (err) {
-      // silently fail
     }
   };
 
@@ -111,15 +110,16 @@ const NotificationBell = () => {
         <div className="overflow-auto" style={{ maxHeight: 320 }}>
           {notifications.length === 0 ? (
             <div className="text-center py-4 text-secondary small">
-              No notifications yet
+              <FiBell size={24} className="mb-2 opacity-50" />
+              <p className="mb-0">No notifications yet</p>
             </div>
           ) : (
             notifications.map((notification) => (
               <div
-                key={notification._id}
-                className={`d-flex align-items-start p-3 border-bottom cursor-pointer ${!notification.read ? 'bg-primary bg-opacity-10' : ''}`}
+                key={notification.id}
+                className={`d-flex align-items-start p-3 border-bottom ${!notification.read && !notification.is_read ? 'bg-primary bg-opacity-10' : ''}`}
                 style={{ cursor: 'pointer' }}
-                onClick={() => handleMarkRead(notification._id)}
+                onClick={() => handleMarkRead(notification.id)}
               >
                 <div className="me-2 mt-1 flex-shrink-0">
                   {iconMap[notification.type] || iconMap.info}
@@ -135,7 +135,7 @@ const NotificationBell = () => {
                     {timeAgo(notification.createdAt)}
                   </small>
                 </div>
-                {!notification.read && (
+                {!notification.read && !notification.is_read && (
                   <div className="ms-2 mt-2">
                     <div className="bg-primary rounded-circle" style={{ width: 8, height: 8 }} />
                   </div>

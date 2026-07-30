@@ -7,7 +7,7 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer style={{ background: '#111827' }} className="pt-5 pb-3 mt-auto">
+    <footer style={{ background: '#111827' }} className="pt-3 pb-3 mt-auto">
       <div className="container">
         <div className="row g-4">
           <div className="col-lg-4 col-md-6">
@@ -61,20 +61,20 @@ const Footer = () => {
             <ul className="list-unstyled">
               <li className="d-flex align-items-start mb-2">
                 <FiMail style={{ color: '#a78bfa' }} className="me-2 mt-1" />
-                <a href="mailto:info@pocket-pay.com" className="footer-link">
-                  info@pocket-pay.com
+                <a href="mailto:pocketpayofficial@gmail.com" className="footer-link">
+                  pocketpayofficial@gmail.com
                 </a>
               </li>
               <li className="d-flex align-items-start mb-2">
                 <FiPhone style={{ color: '#a78bfa' }} className="me-2 mt-1" />
-                <a href="tel:+1234567890" className="footer-link">
-                  +1 (234) 567-890
+                <a href="tel:+94778797107" className="footer-link">
+                  0778 797 107
                 </a>
               </li>
               <li className="d-flex align-items-start mb-2">
                 <FiMapPin style={{ color: '#a78bfa' }} className="me-2 mt-1" />
                 <span style={{ color: '#9ca3af' }} className="small">
-                  123 University Ave, Tech City, TC 10001
+                  Yakkala, Gampaha, Sri Lanka
                 </span>
               </li>
             </ul>

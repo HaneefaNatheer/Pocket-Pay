@@ -1,4 +1,5 @@
 const path = require('path');
+const sequelize = require('../config/database');
 const User = require('../models/User');
 const Employer = require('../models/Employer');
 const Job = require('../models/Job');
@@ -87,6 +88,11 @@ const getMyJobs = async (req, res) => {
     const jobs = await Job.findAll({
       where: { employer_id: employer.id },
       order: [['createdAt', 'DESC']],
+      attributes: {
+        include: [
+          [sequelize.literal(`(SELECT COUNT(*) FROM applications WHERE applications.job_id = Job.id)`), 'applicationCount'],
+        ],
+      },
     });
 
     return res.status(200).json({ success: true, message: 'Jobs retrieved', data: jobs });

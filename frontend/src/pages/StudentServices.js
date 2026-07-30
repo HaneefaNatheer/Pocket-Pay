@@ -1,14 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
   FaUserGraduate, FaArrowRight, FaRocket, FaUserPlus, FaUserCheck,
-  FaSearch, FaFilter, FaEye, FaBookmark, FaPaperPlane, FaChartLine,
+  FaSearch, FaFilter, FaEye, FaBookmark, FaPaperPlane,
   FaBell, FaMapMarkerAlt, FaLock, FaEnvelope, FaMobileAlt, FaSearchPlus,
   FaShieldAlt, FaHeadset, FaCheckCircle, FaBriefcase, FaStar, FaBuilding,
-  FaClock, FaMoneyBillWave, FaHeart, FaExternalLinkAlt, FaTimes,
-  FaUsers, FaRedo, FaCalendarAlt,
+  FaClock, FaMoneyBillWave, FaHeart, FaExternalLinkAlt, FaTimes, FaUser,
+  FaUsers, FaRedo, FaCalendarAlt, FaSlidersH, FaUndo, FaFileAlt,
 } from 'react-icons/fa';
 import api from '../services/api';
+import { applicationService } from '../services/applicationService';
+import { Modal, Button } from 'react-bootstrap';
 
 function useScrollAnimation() {
   const ref = useRef(null);
@@ -60,12 +63,25 @@ const statusConfig = {
   rejected: { label: 'Rejected', color: '#ef4444', bg: '#fef2f2' },
 };
 
-const filterCategories = ['All', 'food-service', 'tech', 'delivery', 'tutoring', 'retail', 'creative', 'part-time', 'freelance'];
+const categoryLabels = {
+  'daily-wage': 'Daily Wage / Flexible',
+  'promotion': 'Promotion & Event',
+  'education': 'Education',
+  'office-support': 'Office Support',
+  'delivery-transport': 'Delivery & Transport',
+  'retail': 'Retail',
+  'hotel-tourism': 'Hotel & Tourism',
+  'freelance': 'Freelance / Skill',
+};
+
+const filterCategories = ['All', 'daily-wage', 'promotion', 'education', 'office-support', 'delivery-transport', 'retail', 'hotel-tourism', 'freelance'];
 
 export default function StudentServices() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [savedJobs, setSavedJobs] = useState([]);
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState(searchParams.get('category') || 'All');
   const [searchQuery, setSearchQuery] = useState('');
   const [showJobDetail, setShowJobDetail] = useState(null);
   const [showNotif, setShowNotif] = useState(false);
@@ -74,6 +90,28 @@ export default function StudentServices() {
   const [appsLoading, setAppsLoading] = useState(true);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [salaryMin, setSalaryMin] = useState('');
+  const [salaryMax, setSalaryMax] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [timePeriod, setTimePeriod] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [salaryRange, setSalaryRange] = useState('all');
+
+  const salaryRanges = [
+    { label: 'Any Salary', value: 'all' },
+    { label: 'Under LKR 10,000', value: '0-10000' },
+    { label: 'LKR 10,000 – 25,000', value: '10000-25000' },
+    { label: 'LKR 25,000 – 50,000', value: '25000-50000' },
+    { label: 'LKR 50,000+', value: '50000+' },
+  ];
+
+  const timePeriods = [
+    { label: 'Any Time', value: 'all' },
+    { label: 'Daily / Recurring', value: 'daily' },
+    { label: 'One-Time / Short', value: 'one-time' },
+    { label: 'Flexible Hours', value: 'flexible' },
+    { label: 'Weekly', value: 'weekly' },
+  ];
 
   const fetchJobs = async () => {
     try {
@@ -136,19 +174,75 @@ export default function StudentServices() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  const filteredJobs = jobs.filter(j => {
-    const matchCategory = activeFilter === 'All' || j.category === activeFilter;
-    const query = searchQuery.toLowerCase();
-    const matchSearch = !query || j.title.toLowerCase().includes(query) || j.company.toLowerCase().includes(query) || j.tags.some(t => t.toLowerCase().includes(query));
-    return matchCategory && matchSearch;
-  });
+  const filteredJobs = useMemo(() => {
+    return jobs.filter(j => {
+      const matchCategory = activeFilter === 'All' || j.category === activeFilter;
+      const query = searchQuery.toLowerCase();
+      const matchSearch = !query || j.title.toLowerCase().includes(query) || j.company.toLowerCase().includes(query) || j.tags.some(t => t.toLowerCase().includes(query));
+      const loc = locationFilter.toLowerCase().trim();
+      const matchLocation = !loc || j.location.toLowerCase().includes(loc);
+      let matchSalary = true;
+      if (salaryRange !== 'all') {
+        if (salaryRange === '50000+') {
+          const s = parseFloat(j.salary_min) || 0;
+          matchSalary = s >= 50000;
+        } else {
+          const [minS, maxS] = salaryRange.split('-').map(Number);
+          const s = parseFloat(j.salary_min) || 0;
+          matchSalary = s >= minS && s <= maxS;
+        }
+      }
+      let matchTime = true;
+      if (timePeriod !== 'all') {
+        if (timePeriod === 'daily') matchTime = j.isRecurring || j.workType === 'daily';
+        else if (timePeriod === 'one-time') matchTime = j.workType === 'one-time';
+        else if (timePeriod === 'flexible') matchTime = j.workType === 'flexible' || j.workType === 'as-needed';
+        else if (timePeriod === 'weekly') matchTime = j.workType === 'weekly';
+      }
+      return matchCategory && matchSearch && matchLocation && matchSalary && matchTime;
+    });
+  }, [jobs, activeFilter, searchQuery, locationFilter, salaryRange, timePeriod]);
 
   const toggleSave = (id) => {
     setSavedJobs(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
-  const toggleApply = (id) => {
-    setAppliedJobs(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const [toastMsg, setToastMsg] = useState(null);
+  const [showCvModal, setShowCvModal] = useState(false);
+  const [pendingJobId, setPendingJobId] = useState(null);
+  const [studentProfile, setStudentProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get('/student/profile');
+        setStudentProfile(res.data?.data || null);
+      } catch {}
+    };
+    if (user?.role === 'student') fetchProfile();
+  }, [user]);
+
+  const toggleApply = async (id) => {
+    if (appliedJobs.includes(id)) return;
+    if (!studentProfile?.cv_file) {
+      setPendingJobId(id);
+      setShowCvModal(true);
+      return;
+    }
+    try {
+      await applicationService.apply({ job_id: id });
+      setAppliedJobs(prev => [...prev, id]);
+      setToastMsg({ type: 'success', text: 'Applied successfully! Employer will be notified.' });
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to apply. Try again.';
+      setToastMsg({ type: 'error', text: msg });
+    }
+    setTimeout(() => setToastMsg(null), 4000);
+  };
+
+  const handleCvModalClose = () => {
+    setShowCvModal(false);
+    setPendingJobId(null);
   };
 
   return (
@@ -175,10 +269,10 @@ export default function StudentServices() {
                   Student Services
                 </span>
                 <h1 className="hero-title mb-3">
-                  Find Your Perfect <span className="text-gradient">Part-Time Job</span>
+                  Browse & Apply to <span className="text-gradient">Student Jobs</span>
                 </h1>
                 <p className="hero-subtitle mb-0">
-                  Everything a student needs to discover, apply, and land the ideal part-time opportunity.
+                  Shop assistant, delivery rider, cashier, waiter, data entry, tutor — browse hundreds of student-friendly jobs near you.
                 </p>
               </AnimSection>
             </div>
@@ -194,119 +288,192 @@ export default function StudentServices() {
               <span className="section-badge" style={{ background: '#7c3aed15', color: '#7c3aed' }}>
                 <FaSearch className="me-2" />Available Jobs
               </span>
-              <h2 className="section-title">Search & <span className="text-gradient">Filter Jobs</span></h2>
-              <p className="section-subtitle">Browse available part-time jobs and find the perfect fit for your schedule.</p>
+              <h2 className="section-title">Browse <span className="text-gradient">Student Jobs</span></h2>
+              <p className="section-subtitle">Use filters to find the perfect daily wage, part-time, or freelance job.</p>
             </div>
           </AnimSection>
 
-          {/* Search Bar - Glass effect */}
+          {/* Search + Filter Toggle */}
           <AnimSection delay={0.1}>
             <div className="p-3 rounded-4 mb-4" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(124,58,237,0.12)', boxShadow: '0 4px 24px rgba(124,58,237,0.06)' }}>
               <div className="row g-2 align-items-center">
-                <div className="col-md-5">
+                <div className="col">
                   <div className="input-group">
                     <span className="input-group-text bg-transparent border-0"><FaSearch style={{ color: '#7c3aed' }} /></span>
                     <input type="text" className="form-control border-0" placeholder="Search by title, skill, or company..." style={{ background: 'transparent', outline: 'none', boxShadow: 'none' }}
                       value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                   </div>
                 </div>
-                <div className="col-md-3">
-                  <select className="form-select border-0" style={{ background: '#f8f7ff', cursor: 'pointer' }}
-                    value={activeFilter} onChange={e => setActiveFilter(e.target.value)}>
-                    <option value="All">All Categories</option>
-                    {filterCategories.slice(1).map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div className="col-md-2">
-                  <button className="btn w-100 rounded-pill fw-semibold" style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: '#fff', border: 'none' }}
-                    onClick={() => setSearchQuery('')}>
-                    <FaSearch className="me-1" /> {searchQuery ? 'Clear' : 'Browse'}
+                <div className="col-auto">
+                  <button className="btn rounded-pill px-3 fw-semibold d-flex align-items-center gap-2" style={{ background: showFilters ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : '#f1f5f9', color: showFilters ? '#fff' : '#475569', border: showFilters ? 'none' : '1px solid #e2e8f0', transition: 'all 0.25s ease' }}
+                    onClick={() => setShowFilters(!showFilters)}>
+                    <FaSlidersH size={14} /> Filters
                   </button>
                 </div>
               </div>
             </div>
           </AnimSection>
 
-          {/* Category Filter Chips with animation */}
-          <AnimSection delay={0.15}>
-            <div className="d-flex flex-wrap gap-2 mb-4 justify-content-center">
-              {filterCategories.map(cat => (
-                <button
-                  key={cat}
-                  className="btn btn-sm rounded-pill px-3 py-1 fw-semibold"
-                  style={{
-                    background: activeFilter === cat ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : '#f1f5f9',
-                    color: activeFilter === cat ? '#fff' : '#475569',
-                    border: activeFilter === cat ? 'none' : '1px solid #e2e8f0',
-                    transform: activeFilter === cat ? 'scale(1.05)' : 'scale(1)',
-                    boxShadow: activeFilter === cat ? '0 4px 12px rgba(124,58,237,0.3)' : 'none',
-                    transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(124,58,237,0.15)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = activeFilter === cat ? 'scale(1.05)' : 'scale(1)'; e.currentTarget.style.boxShadow = activeFilter === cat ? '0 4px 12px rgba(124,58,237,0.3)' : 'none'; }}
-                  onClick={() => setActiveFilter(cat)}
-                >
-                  {cat === 'All' ? '🔥 All' : cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')}
-                </button>
-              ))}
-            </div>
-          </AnimSection>
+          <div className="row g-4">
+            {/* ============ FILTER SIDEBAR ============ */}
+            {showFilters && (
+              <div className="col-lg-3">
+                <AnimSection animation="fade-left">
+                  <div className="rounded-4 p-4 position-sticky" style={{ top: 100, background: '#fff', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
+                    <div className="d-flex align-items-center justify-content-between mb-3">
+                      <h6 className="fw-bold mb-0"><FaSlidersH className="me-2" style={{ color: '#7c3aed' }} />Filters</h6>
+                      <button className="btn btn-sm p-0 bg-transparent border-0 text-muted" style={{ fontSize: '0.78rem' }}
+                        onClick={() => { setActiveFilter('All'); setSearchQuery(''); setLocationFilter(''); setSalaryRange('all'); setTimePeriod('all'); }}>
+                        <FaUndo className="me-1" />Reset
+                      </button>
+                    </div>
 
-          {/* Results count */}
-          <AnimSection delay={0.18}>
-            <div className="d-flex justify-content-between align-items-center mb-3 px-1">
-              <small className="text-muted fw-semibold">
-                {searchQuery ? `"${searchQuery}" — ` : ''}{filteredJobs.length} job{filteredJobs.length !== 1 ? 's' : ''} found
-              </small>
-              <div className="d-flex align-items-center gap-2">
-                <FaClock size={12} className="text-muted" />
-                <small className="text-muted">Updated just now</small>
-              </div>
-            </div>
-          </AnimSection>
+                    {/* Category */}
+                    <div className="mb-4">
+                      <label className="form-label fw-semibold" style={{ fontSize: '0.82rem', color: '#374151' }}>Category</label>
+                      <div className="d-flex flex-column gap-1">
+                        {filterCategories.map(cat => (
+                          <button key={cat} className="btn btn-sm text-start rounded-pill px-3 py-1 fw-semibold" style={{
+                            background: activeFilter === cat ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'transparent',
+                            color: activeFilter === cat ? '#fff' : '#475569',
+                            border: 'none',
+                            fontSize: '0.8rem',
+                            transition: 'all 0.2s ease',
+                          }}
+                            onMouseEnter={e => { if (activeFilter !== cat) e.currentTarget.style.background = '#f3f0ff'; }}
+                            onMouseLeave={e => { if (activeFilter !== cat) e.currentTarget.style.background = 'transparent'; }}
+                            onClick={() => setActiveFilter(cat)}>
+                            {cat === 'All' ? '🔥 All Categories' : categoryLabels[cat] || cat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-          {/* Job Cards */}
-          <div className="row g-3">
-            {loading ? (
-              <div className="col-12 text-center py-5">
-                <div className="spinner-border" style={{ color: '#7c3aed' }}><span className="visually-hidden">Loading...</span></div>
-                <p className="text-muted mt-2">Loading jobs...</p>
+                    {/* Salary Range */}
+                    <div className="mb-4">
+                      <label className="form-label fw-semibold" style={{ fontSize: '0.82rem', color: '#374151' }}><FaMoneyBillWave className="me-1" style={{ color: '#10b981' }} />Salary</label>
+                      <div className="d-flex flex-column gap-1">
+                        {salaryRanges.map(r => (
+                          <button key={r.value} className="btn btn-sm text-start rounded-pill px-3 py-1 fw-semibold" style={{
+                            background: salaryRange === r.value ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent',
+                            color: salaryRange === r.value ? '#fff' : '#475569',
+                            border: 'none',
+                            fontSize: '0.8rem',
+                            transition: 'all 0.2s ease',
+                          }}
+                            onMouseEnter={e => { if (salaryRange !== r.value) e.currentTarget.style.background = '#f0fdf4'; }}
+                            onMouseLeave={e => { if (salaryRange !== r.value) e.currentTarget.style.background = 'transparent'; }}
+                            onClick={() => setSalaryRange(r.value)}>
+                            {r.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Location */}
+                    <div className="mb-4">
+                      <label className="form-label fw-semibold" style={{ fontSize: '0.82rem', color: '#374151' }}><FaMapMarkerAlt className="me-1" style={{ color: '#f59e0b' }} />Location</label>
+                      <div className="input-group input-group-sm">
+                        <input type="text" className="form-control rounded-pill px-3 py-1" placeholder="City, district..." style={{ border: '1px solid #e2e8f0', fontSize: '0.8rem' }}
+                          value={locationFilter} onChange={e => setLocationFilter(e.target.value)} />
+                      </div>
+                    </div>
+
+                    {/* Time Period */}
+                    <div className="mb-3">
+                      <label className="form-label fw-semibold" style={{ fontSize: '0.82rem', color: '#374151' }}><FaClock className="me-1" style={{ color: '#3b82f6' }} />Time Period</label>
+                      <div className="d-flex flex-column gap-1">
+                        {timePeriods.map(t => (
+                          <button key={t.value} className="btn btn-sm text-start rounded-pill px-3 py-1 fw-semibold" style={{
+                            background: timePeriod === t.value ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'transparent',
+                            color: timePeriod === t.value ? '#fff' : '#475569',
+                            border: 'none',
+                            fontSize: '0.8rem',
+                            transition: 'all 0.2s ease',
+                          }}
+                            onMouseEnter={e => { if (timePeriod !== t.value) e.currentTarget.style.background = '#eff6ff'; }}
+                            onMouseLeave={e => { if (timePeriod !== t.value) e.currentTarget.style.background = 'transparent'; }}
+                            onClick={() => setTimePeriod(t.value)}>
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 pt-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+                      <small className="text-muted">{filteredJobs.length} job{filteredJobs.length !== 1 ? 's' : ''} found</small>
+                    </div>
+                  </div>
+                </AnimSection>
               </div>
-            ) : filteredJobs.length === 0 ? (
-              <div className="col-12 text-center py-5">
-                <div style={{ opacity: 0.5 }}>
-                  <FaBriefcase size={48} className="text-muted mb-3" />
+            )}
+
+            {/* ============ TOAST ============ */}
+            {toastMsg && (
+              <div className={`position-fixed top-0 start-50 translate-middle-x p-3`} style={{ zIndex: 99999, marginTop: '80px' }}>
+                <div className={`alert alert-${toastMsg.type === 'success' ? 'success' : 'danger'} d-flex align-items-center shadow-lg rounded-3 px-4 py-3 mb-0`} style={{ minWidth: 320, border: 'none' }}>
+                  <FaCheckCircle className={`me-2 ${toastMsg.type === 'success' ? 'text-success' : 'text-danger'}`} size={18} />
+                  <span className="fw-semibold" style={{ fontSize: '0.9rem' }}>{toastMsg.text}</span>
                 </div>
-                <h6 className="fw-bold" style={{ color: '#475569' }}>No jobs match your criteria</h6>
-                <p className="text-muted mb-3" style={{ fontSize: '0.88rem', maxWidth: 400, margin: '0 auto' }}>
-                  {searchQuery && activeFilter !== 'All'
-                    ? `No "${activeFilter}" jobs matching "${searchQuery}". Try a different search or category.`
-                    : searchQuery
-                      ? `No jobs matching "${searchQuery}". Try different keywords.`
-                      : activeFilter !== 'All'
-                        ? `No jobs in "${activeFilter}" category yet. Try a different filter or check back later!`
-                        : 'No jobs have been posted yet. Check back later!'}
-                </p>
-                {(searchQuery || activeFilter !== 'All') && (
-                  <button className="btn btn-sm rounded-pill px-4 fw-semibold" style={{ background: '#7c3aed15', color: '#7c3aed', border: '1px solid #7c3aed30' }}
-                    onClick={() => { setSearchQuery(''); setActiveFilter('All'); }}>
-                    <FaTimes className="me-1" /> Clear All Filters
-                  </button>
-                )}
               </div>
-            ) : filteredJobs.map((job, i) => (
-              <div key={job.id} className="col-lg-4 col-md-6">
-                <AnimSection delay={i * 0.08}>
-                  <div className="rounded-4 p-4 h-100 d-flex flex-column position-relative overflow-hidden" style={{ background: '#fff', border: '1px solid #e2e8f0', transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 12px 40px rgba(124,58,237,0.1)'; e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = 'rgba(124,58,237,0.2)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
-                  >
+            )}
+
+            {/* ============ JOB CARDS ============ */}
+            <div className={showFilters ? 'col-lg-9' : 'col-12'}>
+              {/* Results count */}
+              <AnimSection delay={0.12}>
+                <div className="d-flex justify-content-between align-items-center mb-3 px-1">
+                  <small className="text-muted fw-semibold">
+                    {searchQuery ? `"${searchQuery}" — ` : ''}{filteredJobs.length} job{filteredJobs.length !== 1 ? 's' : ''} found
+                  </small>
+                  <div className="d-flex align-items-center gap-2">
+                    <FaClock size={12} className="text-muted" />
+                    <small className="text-muted">Updated just now</small>
+                  </div>
+                </div>
+              </AnimSection>
+
+              <div className="row g-3">
+                {loading ? (
+                  <div className="col-12 text-center py-5">
+                    <div className="spinner-border" style={{ color: '#7c3aed' }}><span className="visually-hidden">Loading...</span></div>
+                    <p className="text-muted mt-2">Loading jobs...</p>
+                  </div>
+                ) : filteredJobs.length === 0 ? (
+                  <div className="col-12 text-center py-5">
+                    <div style={{ opacity: 0.5 }}>
+                      <FaBriefcase size={48} className="text-muted mb-3" />
+                    </div>
+                    <h6 className="fw-bold" style={{ color: '#475569' }}>No jobs match your criteria</h6>
+                    <p className="text-muted mb-3" style={{ fontSize: '0.88rem', maxWidth: 400, margin: '0 auto' }}>
+                      {searchQuery && activeFilter !== 'All'
+                        ? `No "${activeFilter}" jobs matching "${searchQuery}". Try a different search or category.`
+                        : searchQuery
+                          ? `No jobs matching "${searchQuery}". Try different keywords.`
+                          : activeFilter !== 'All'
+                            ? `No jobs in "${activeFilter}" category yet. Try a different filter or check back later!`
+                            : 'No jobs have been posted yet. Check back later!'}
+                    </p>
+                    {(searchQuery || activeFilter !== 'All') && (
+                      <button className="btn btn-sm rounded-pill px-4 fw-semibold" style={{ background: '#7c3aed15', color: '#7c3aed', border: '1px solid #7c3aed30' }}
+                        onClick={() => { setSearchQuery(''); setActiveFilter('All'); }}>
+                        <FaTimes className="me-1" /> Clear All Filters
+                      </button>
+                    )}
+                  </div>
+                ) : filteredJobs.map((job, i) => (
+                  <div key={job.id} className={showFilters ? 'col-lg-6 col-md-6' : 'col-lg-4 col-md-6'}>
+                    <AnimSection delay={i * 0.08}>
+                      <div className="rounded-4 p-4 h-100 d-flex flex-column position-relative overflow-hidden" style={{ background: '#fff', border: '1px solid #e2e8f0', transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 12px 40px rgba(124,58,237,0.1)'; e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = 'rgba(124,58,237,0.2)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                      >
                     {/* Top gradient line */}
                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #7c3aed, #a78bfa)' }} />
 
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <span className="badge rounded-pill px-2 py-1 d-flex align-items-center gap-1" style={{ background: '#7c3aed15', color: '#7c3aed', fontSize: '0.7rem', fontWeight: 600 }}>
-                        <FaBriefcase size={9} />{job.category}
+                        <FaBriefcase size={9} />{categoryLabels[job.category] || job.category}
                       </span>
                       <button className="btn btn-sm p-0 border-0 bg-transparent" onClick={() => toggleSave(job.id)}
                         style={{ transition: '0.2s', transform: savedJobs.includes(job.id) ? 'scale(1.1)' : 'scale(1)' }}>
@@ -387,6 +554,8 @@ export default function StudentServices() {
               </div>
             ))}
           </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -401,7 +570,7 @@ export default function StudentServices() {
               <div className="d-flex justify-content-between align-items-start position-relative">
                 <div>
                   <span className="badge rounded-pill px-3 py-1 mb-2" style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.7rem', fontWeight: 600, backdropFilter: 'blur(4px)' }}>
-                    <FaBriefcase className="me-1" size={9} />{showJobDetail.category}
+                    <FaBriefcase className="me-1" size={9} />{categoryLabels[showJobDetail.category] || showJobDetail.category}
                   </span>
                   <h5 className="text-white fw-bold mb-1">{showJobDetail.title}</h5>
                   <div className="d-flex align-items-center gap-2">
@@ -519,61 +688,7 @@ export default function StudentServices() {
         </div>
       )}
 
-      {/* ============ APPLICATION TRACKING DEMO ============ */}
-      <section className="py-5">
-        <div className="container">
-          <div className="row g-4 align-items-start">
-            {/* Applications */}
-            <div className="col-lg-7">
-              <AnimSection>
-                <h5 className="fw-bold mb-3"><FaChartLine className="me-2" style={{ color: '#7c3aed' }} />Track Application Status</h5>
-                <p className="text-muted mb-4" style={{ fontSize: '0.9rem' }}>Monitor your applications in real-time — see where you stand at a glance.</p>
-              </AnimSection>
-              <div className="d-flex flex-column gap-2">
-                {appsLoading ? (
-                  <div className="text-center py-4"><div className="spinner-border spinner-border-sm text-primary" /></div>
-                ) : applications.length === 0 ? (
-                  <div className="text-center py-4 text-muted" style={{ fontSize: '0.9rem' }}>
-                    <FaPaperPlane size={32} className="mb-2 opacity-50" />
-                    <p className="mb-0">No applications yet. Start applying to jobs!</p>
-                  </div>
-                ) : (
-                  applications.map((app, i) => {
-                    const cfg = statusConfig[app.status] || statusConfig.pending;
-                    return (
-                      <AnimSection key={app.id || i} delay={i * 0.1}>
-                        <div className="d-flex align-items-center justify-content-between p-3 rounded-3" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
-                          <div>
-                            <h6 className="fw-bold mb-0" style={{ fontSize: '0.95rem' }}>{app.job?.title || 'Job'}</h6>
-                            <small className="text-muted">{app.job?.employer?.company_name || 'Company'} &middot; Applied {formatDate(app.applied_at)}</small>
-                          </div>
-                          <span className="badge rounded-pill px-3 py-1" style={{ background: cfg.bg, color: cfg.color, fontSize: '0.78rem', fontWeight: 600 }}>{cfg.label}</span>
-                        </div>
-                      </AnimSection>
-                    );
-                  })
-                )}
-              </div>
-            </div>
 
-            {/* Notifications */}
-            <div className="col-lg-5">
-              <AnimSection delay={0.2}>
-                <div className="position-relative">
-                  <h5 className="fw-bold mb-3"><FaBell className="me-2" style={{ color: '#f59e0b' }} />Notifications</h5>
-                  <p className="text-muted mb-4" style={{ fontSize: '0.9rem' }}>Get instant alerts for job updates, applications, and messages.</p>
-                  <div className="d-flex flex-column gap-2">
-                    <div className="p-3 rounded-3 text-center text-muted" style={{ background: '#fff', fontSize: '0.88rem' }}>
-                      <FaBell size={24} className="mb-2 opacity-50" />
-                      <p className="mb-0">No new notifications. We'll alert you when your application status changes or new jobs match your profile.</p>
-                    </div>
-                  </div>
-                </div>
-              </AnimSection>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* CTA */}
       <section className="cta-section py-5">
@@ -594,6 +709,28 @@ export default function StudentServices() {
           </AnimSection>
         </div>
       </section>
+
+      {/* CV Required Modal */}
+      <Modal show={showCvModal} onHide={handleCvModalClose} centered>
+        <Modal.Body className="text-center py-5 px-4">
+          <div className="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style={{ width: 70, height: 70, background: '#fef2f2' }}>
+            <FaFileAlt size={30} style={{ color: '#ef4444' }} />
+          </div>
+          <h5 className="fw-bold mb-2">CV Required</h5>
+          <p className="text-muted mb-4" style={{ fontSize: '0.9rem' }}>
+            You need to upload your CV before applying to jobs.
+            <br />Add your CV in your profile settings.
+          </p>
+          <div className="d-flex gap-2 justify-content-center">
+            <Button variant="outline-secondary" onClick={handleCvModalClose}>
+              Later
+            </Button>
+            <Link to="/student/profile" className="btn btn-primary fw-semibold px-4" onClick={handleCvModalClose}>
+              <FaUser className="me-1" /> Go to Profile
+            </Link>
+          </div>
+        </Modal.Body>
+      </Modal>
 
     </div>
   );
