@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FaBriefcase, FaRocket, FaBuilding, FaShieldAlt, FaIdBadge,
@@ -10,6 +10,9 @@ import {
   FaCogs, FaHandshake,
 } from 'react-icons/fa';
 import api from '../services/api';
+import { jobService } from '../services/jobService';
+import { toast } from 'react-toastify';
+import { Modal, Button } from 'react-bootstrap';
 
 function useScrollAnimation() {
   const ref = useRef(null);
@@ -48,24 +51,6 @@ function AnimSection({ children, className = '', delay = 0, animation = 'fade-up
     </div>
   );
 }
-
-const demoAnalytics = [
-  { label: 'Total Views', value: '1,247', change: '+12%', icon: FaEye, color: '#7c3aed' },
-  { label: 'Applications', value: '45', change: '+8%', icon: FaInbox, color: '#3b82f6' },
-  { label: 'Hired', value: '7', change: '+3', icon: FaUserCheck, color: '#10b981' },
-  { label: 'Active Posts', value: '3', change: '', icon: FaBriefcase, color: '#f59e0b' },
-];
-
-const demoPostings = [
-  { id: 1, title: 'Construction Site Helper', company: 'BuildRight Construction', applicants: 9, views: 120, status: 'Active', salary: 'LKR 2,500/day', shiftDuration: '8 hrs', workType: 'Daily', days: 'Mon-Sat', workersNeeded: 5, workersHired: 2, posted: 'Aug 1, 2026', category: 'daily-wage' },
-  { id: 2, title: 'Brand Promoter', company: 'Max Marketing Agency', applicants: 15, views: 200, status: 'Active', salary: 'LKR 500/hr', shiftDuration: '8 hrs', workType: 'Daily', days: 'Fri-Sun', workersNeeded: 4, workersHired: 1, posted: 'Aug 3, 2026', category: 'promotion' },
-  { id: 3, title: 'Mathematics Tutor', company: 'Bright Minds Academy', applicants: 7, views: 85, status: 'Active', salary: 'LKR 1,000/hr', shiftDuration: '2 hrs', workType: 'Flexible', days: 'Mon-Fri', workersNeeded: 2, workersHired: 0, posted: 'Aug 2, 2026', category: 'education' },
-  { id: 4, title: 'Data Entry Assistant', company: 'ABC Business Solutions', applicants: 5, views: 60, status: 'Closed', salary: 'LKR 28,000/mo', shiftDuration: '8 hrs', workType: 'Daily', days: 'Mon-Fri', workersNeeded: 2, workersHired: 2, posted: 'Jul 20, 2026', category: 'office-support' },
-  { id: 5, title: 'Food Delivery Rider', company: 'QuickDeliver', applicants: 20, views: 210, status: 'Paused', salary: 'LKR 1,200/day', shiftDuration: '8 hrs', workType: 'Daily', days: 'Mon-Sun', workersNeeded: 5, workersHired: 2, posted: 'Jul 28, 2026', category: 'delivery-transport' },
-  { id: 6, title: 'Retail Sales Assistant', company: 'City Mart Supermarket', applicants: 12, views: 130, status: 'Active', salary: 'LKR 400/hr', shiftDuration: '8 hrs', workType: 'Daily', days: 'Mon-Sat', workersNeeded: 4, workersHired: 1, posted: 'Aug 1, 2026', category: 'retail' },
-  { id: 7, title: 'Hotel Housekeeping Staff', company: 'Grand Ceylon Hotel', applicants: 6, views: 90, status: 'Active', salary: 'LKR 500/hr', shiftDuration: '8 hrs', workType: 'Daily', days: 'Flexible', workersNeeded: 4, workersHired: 1, posted: 'Aug 4, 2026', category: 'hotel-tourism' },
-  { id: 8, title: 'Graphic Designer - Social Media', company: 'Creative Studio', applicants: 4, views: 55, status: 'Active', salary: 'LKR 20,000/project', shiftDuration: 'Flexible', workType: 'Freelance', days: 'Flexible', workersNeeded: 1, workersHired: 0, posted: 'Aug 5, 2026', category: 'freelance' },
-];
 
 const postJobSections = [
   {
@@ -124,6 +109,34 @@ export default function EmployerServices() {
     deadline: '', required_documents: [],
   });
 
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const [editTarget, setEditTarget] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: '', category: '', job_type: 'onsite', workers_needed: '',
+    description: '', requirements: '',
+    available_days: [], available_hours_start: '', available_hours_end: '',
+    salary_min: '', salary_max: '', salary_type: 'monthly', benefits: '',
+    location: '',
+    contact_person: '', contact_phone: '', contact_email: '',
+    deadline: '', required_documents: [],
+  });
+
+  const analytics = useMemo(() => {
+    const views = myJobs.reduce((sum, j) => sum + (j.views_count || 0), 0);
+    const applications = myJobs.reduce((sum, j) => sum + (j.current_applicants || 0), 0);
+    const hired = myJobs.reduce((sum, j) => sum + (j.workers_hired || 0), 0);
+    const active = myJobs.filter((j) => j.status?.toLowerCase() === 'active').length;
+    return [
+      { label: 'Total Views', value: views.toLocaleString(), icon: FaEye, color: '#7c3aed' },
+      { label: 'Applications', value: applications.toLocaleString(), icon: FaInbox, color: '#3b82f6' },
+      { label: 'Hired', value: hired.toLocaleString(), icon: FaUserCheck, color: '#10b981' },
+      { label: 'Active Posts', value: active.toLocaleString(), icon: FaBriefcase, color: '#f59e0b' },
+    ];
+  }, [myJobs]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
@@ -149,7 +162,7 @@ export default function EmployerServices() {
 
   const fetchProfile = async () => {
     try {
-      const res = await api.get('/employer/profile');
+      const res = await api.get('/employers/profile');
       const p = res.data.data;
       setProfile(p);
       setForm(prev => ({
@@ -164,7 +177,7 @@ export default function EmployerServices() {
 
   const fetchMyJobs = async () => {
     try {
-      const res = await api.get('/employer/my-jobs');
+      const res = await api.get('/employers/my-jobs');
       setMyJobs(res.data.data || []);
     } catch (err) {
       setMyJobs([]);
@@ -216,6 +229,109 @@ export default function EmployerServices() {
     setSubmitting(false);
   };
 
+  const handleDeleteJob = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await jobService.delete(deleteTarget.id || deleteTarget._id);
+      toast.success('Job deleted.');
+      setDeleteTarget(null);
+      fetchMyJobs();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to delete job.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditDayToggle = (day) => {
+    setEditForm(prev => ({
+      ...prev,
+      available_days: prev.available_days.includes(day)
+        ? prev.available_days.filter(d => d !== day)
+        : [...prev.available_days, day],
+    }));
+  };
+
+  const handleEditDocToggle = (doc) => {
+    setEditForm(prev => ({
+      ...prev,
+      required_documents: prev.required_documents.includes(doc)
+        ? prev.required_documents.filter(d => d !== doc)
+        : [...prev.required_documents, doc],
+    }));
+  };
+
+  const openEdit = (job) => {
+    setEditForm({
+      title: job.title || '',
+      category: job.category || '',
+      job_type: job.job_type || 'onsite',
+      workers_needed: job.workers_needed || '',
+      description: job.description || '',
+      requirements: job.requirements || '',
+      available_days: job.available_days || [],
+      available_hours_start: job.available_hours_start || '',
+      available_hours_end: job.available_hours_end || '',
+      salary_min: job.salary_min || '',
+      salary_max: job.salary_max || '',
+      salary_type: job.salary_type || 'monthly',
+      benefits: job.benefits || '',
+      location: job.location || '',
+      contact_person: job.contact_person || '',
+      contact_phone: job.contact_phone || '',
+      contact_email: job.contact_email || '',
+      deadline: job.deadline ? new Date(job.deadline).toISOString().slice(0, 10) : '',
+      required_documents: job.required_documents || [],
+    });
+    setEditTarget(job);
+  };
+
+  const handleUpdateJob = async () => {
+    if (!editTarget) return;
+    if (!editForm.title || !editForm.description || !editForm.category) {
+      toast.error('Please fill in Title, Description, and Category.');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const payload = {
+        title: editForm.title,
+        description: editForm.description,
+        requirements: editForm.requirements,
+        category: editForm.category,
+        job_type: editForm.job_type,
+        workers_needed: parseInt(editForm.workers_needed) || 1,
+        salary_min: parseFloat(editForm.salary_min) || null,
+        salary_max: parseFloat(editForm.salary_max) || null,
+        salary_type: editForm.salary_type,
+        location: editForm.location,
+        available_days: editForm.available_days.length > 0 ? editForm.available_days : null,
+        available_hours_start: editForm.available_hours_start || null,
+        available_hours_end: editForm.available_hours_end || null,
+        benefits: editForm.benefits || null,
+        contact_person: editForm.contact_person || null,
+        contact_phone: editForm.contact_phone || null,
+        contact_email: editForm.contact_email || null,
+        deadline: editForm.deadline || null,
+        required_documents: editForm.required_documents.length > 0 ? editForm.required_documents : null,
+      };
+      await jobService.update(editTarget.id || editTarget._id, payload);
+      toast.success('Job updated successfully!');
+      setEditTarget(null);
+      fetchMyJobs();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to update job.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   return (
     <div className="home-page">
 
@@ -259,13 +375,13 @@ export default function EmployerServices() {
               <span className="section-badge" style={{ background: '#2563eb15', color: '#2563eb' }}>
                 <FaChartLine className="me-2" />Overview
               </span>
-              <h2 className="section-title">Employer <span className="text-gradient">Dashboard</span></h2>
+              <h2 className="section-title">Employer <span className="text-gradient">Services</span></h2>
               <p className="section-subtitle">Post daily wage, part-time, and freelance jobs — manage listings and hire students at a glance.</p>
             </div>
           </AnimSection>
 
           <div className="row g-3 mb-5">
-            {demoAnalytics.map((stat, i) => (
+            {analytics.map((stat, i) => (
               <div key={i} className="col-lg-3 col-6">
                 <AnimSection delay={i * 0.1}>
                   <div className="p-4 rounded-4 text-center position-relative overflow-hidden" style={{ background: '#fff', border: '1px solid #e2e8f0', transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
@@ -278,9 +394,6 @@ export default function EmployerServices() {
                     </div>
                     <h3 className="fw-bold mb-0" style={{ fontSize: '1.75rem' }}>{stat.value}</h3>
                     <small className="text-muted" style={{ fontSize: '0.85rem' }}>{stat.label}</small>
-                    {stat.change && (
-                      <div className="mt-1"><span className="badge rounded-pill px-2 py-0" style={{ background: '#f0fdf4', color: '#16a34a', fontSize: '0.7rem', fontWeight: 600 }}>{stat.change}</span></div>
-                    )}
                   </div>
                 </AnimSection>
               </div>
@@ -384,45 +497,34 @@ export default function EmployerServices() {
                         </span>
                         {job.salary_min && (
                           <span className="d-flex align-items-center gap-1" style={{ fontSize: '0.8rem', color: '#475569' }}>
-                            <FaMoneyBillWave size={12} style={{ color: '#10b981' }} /> LKR {job.salary_min.toLocaleString()}{job.salary_type === 'hourly' ? '/hr' : job.salary_type === 'daily' ? '/day' : '/mo'}
-                          </span>
-                        )}
-                        {job.workers_needed > 1 && (
-                          <span className="d-flex align-items-center gap-1" style={{ fontSize: '0.8rem', color: '#475569' }}>
-                            <FaUsers size={12} style={{ color: '#f59e0b' }} /> {job.workers_hired || 0}/{job.workers_needed} hired
+                            <FaMoneyBillWave size={12} style={{ color: '#10b981' }} /> LKR {Number(job.salary_min).toLocaleString()}{job.salary_type === 'hourly' ? '/hr' : job.salary_type === 'daily' ? '/day' : '/mo'}
                           </span>
                         )}
                       </div>
 
-                      {job.workers_needed > 1 && (
-                        <div className="mt-2 d-flex align-items-center gap-2">
-                          <small className="text-muted" style={{ fontSize: '0.7rem' }}>Hiring progress:</small>
-                          <div style={{ flex: 1, maxWidth: 200, height: 5, background: '#e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-                            <div style={{ width: `${Math.min(((job.workers_hired || 0) / job.workers_needed) * 100, 100)}%`, height: '100%', background: 'linear-gradient(90deg, #2563eb, #60a5fa)', borderRadius: 10 }} />
-                          </div>
-                          <small className="fw-semibold" style={{ fontSize: '0.7rem', color: '#2563eb' }}>{Math.round(((job.workers_hired || 0) / job.workers_needed) * 100)}%</small>
-                        </div>
-                      )}
-
                       <div className="d-flex flex-wrap gap-2 mt-3">
-                        <button className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: '#eff6ff', color: '#2563eb', border: 'none', transition: '0.2s' }}
+                        <button type="button" className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: '#eff6ff', color: '#2563eb', border: 'none', transition: '0.2s' }}
                           onMouseEnter={e => { e.currentTarget.style.background = '#dbeafe'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = '#eff6ff'; }}>
+                          onMouseLeave={e => { e.currentTarget.style.background = '#eff6ff'; }}
+                          onClick={() => navigate(`/jobs/${job.id || job._id}`)}>
                           <FaEye className="me-1" />View
                         </button>
-                        <button className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: '#fffbeb', color: '#d97706', border: 'none', transition: '0.2s' }}
+                        <button type="button" className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: '#fffbeb', color: '#d97706', border: 'none', transition: '0.2s' }}
                           onMouseEnter={e => { e.currentTarget.style.background = '#fef3c7'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = '#fffbeb'; }}>
+                          onMouseLeave={e => { e.currentTarget.style.background = '#fffbeb'; }}
+                          onClick={() => openEdit(job)}>
                           <FaEdit className="me-1" />Edit
                         </button>
-                        <button className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: '#fef2f2', color: '#ef4444', border: 'none', transition: '0.2s' }}
+                        <button type="button" className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: '#fef2f2', color: '#ef4444', border: 'none', transition: '0.2s' }}
                           onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = '#fef2f2'; }}>
+                          onMouseLeave={e => { e.currentTarget.style.background = '#fef2f2'; }}
+                          onClick={() => setDeleteTarget(job)}>
                           <FaTrash className="me-1" />Delete
                         </button>
-                        <button className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: '#fff', border: 'none', transition: '0.2s' }}
+                        <button type="button" className="btn btn-sm rounded-pill px-3 fw-semibold" style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: '#fff', border: 'none', transition: '0.2s' }}
                           onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(124,58,237,0.35)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}>
+                          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
+                          onClick={() => navigate(`/employer/applicants/${job.id || job._id}`)}>
                           <FaUsers className="me-1" />View Applicants
                         </button>
                       </div>
@@ -629,6 +731,141 @@ export default function EmployerServices() {
         </div>
       </section>
 
+      <Modal show={!!deleteTarget} onHide={() => setDeleteTarget(null)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Delete Job</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Are you sure you want to delete "<strong>{deleteTarget?.title}</strong>"?
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button variant="danger" onClick={handleDeleteJob} disabled={deleting}>
+            {deleting ? <><span className="spinner-border spinner-border-sm me-2"></span>Deleting...</> : <><FaTrash className="me-1" />Delete</>}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={!!editTarget} onHide={() => setEditTarget(null)} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title><FaEdit className="me-2" style={{ color: '#d97706' }} />Edit Job</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+          <div className="row g-3">
+            <div className="col-12">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Job Title *</label>
+              <input type="text" className="form-control rounded-3" name="title" value={editForm.title} onChange={handleEditChange} placeholder="e.g. Barista, Web Developer" />
+            </div>
+            <div className="col-md-4">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Job Category *</label>
+              <select className="form-select rounded-3" name="category" value={editForm.category} onChange={handleEditChange}>
+                <option value="">Select category</option>
+                <option value="daily-wage">Daily Wage / Flexible</option>
+                <option value="promotion">Promotion & Event</option>
+                <option value="education">Education</option>
+                <option value="office-support">Office Support</option>
+                <option value="delivery-transport">Delivery & Transport</option>
+                <option value="retail">Retail</option>
+                <option value="hotel-tourism">Hotel & Tourism</option>
+                <option value="freelance">Freelance / Skill-Based</option>
+              </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Job Type</label>
+              <select className="form-select rounded-3" name="job_type" value={editForm.job_type} onChange={handleEditChange}>
+                <option value="onsite">On-Site</option>
+                <option value="remote">Remote</option>
+                <option value="hybrid">Hybrid</option>
+              </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Number of Vacancies</label>
+              <input type="number" className="form-control rounded-3" name="workers_needed" value={editForm.workers_needed} onChange={handleEditChange} placeholder="e.g. 3" min="1" />
+            </div>
+            <div className="col-12">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Job Description *</label>
+              <textarea className="form-control rounded-3" rows="3" name="description" value={editForm.description} onChange={handleEditChange} placeholder="Describe the job role..." />
+            </div>
+            <div className="col-12">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Requirements</label>
+              <textarea className="form-control rounded-3" rows="2" name="requirements" value={editForm.requirements} onChange={handleEditChange} placeholder="e.g. Age 18+, Basic English..." />
+            </div>
+            <div className="col-md-4">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Salary Min (LKR)</label>
+              <input type="number" className="form-control rounded-3" name="salary_min" value={editForm.salary_min} onChange={handleEditChange} placeholder="e.g. 25000" />
+            </div>
+            <div className="col-md-4">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Salary Max (LKR)</label>
+              <input type="number" className="form-control rounded-3" name="salary_max" value={editForm.salary_max} onChange={handleEditChange} placeholder="e.g. 30000" />
+            </div>
+            <div className="col-md-4">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Salary Type</label>
+              <select className="form-select rounded-3" name="salary_type" value={editForm.salary_type} onChange={handleEditChange}>
+                <option value="monthly">Monthly</option>
+                <option value="hourly">Hourly</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="fixed">Per Project</option>
+              </select>
+            </div>
+            <div className="col-12">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Location</label>
+              <input type="text" className="form-control rounded-3" name="location" value={editForm.location} onChange={handleEditChange} placeholder="e.g. Colombo, Nugegoda" />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Working Days</label>
+              <div className="d-flex flex-wrap gap-2">
+                {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+                  <button key={d} type="button" className="btn btn-sm rounded-pill px-3 py-1 fw-semibold" style={{ background: editForm.available_days.includes(d) ? '#2563eb' : '#f1f5f9', color: editForm.available_days.includes(d) ? '#fff' : '#475569', border: 'none', fontSize: '0.8rem' }} onClick={() => handleEditDayToggle(d)}>{d}</button>
+                ))}
+              </div>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Working Hours</label>
+              <div className="row g-2">
+                <div className="col-6"><input type="time" className="form-control rounded-3" name="available_hours_start" value={editForm.available_hours_start} onChange={handleEditChange} /></div>
+                <div className="col-6"><input type="time" className="form-control rounded-3" name="available_hours_end" value={editForm.available_hours_end} onChange={handleEditChange} /></div>
+              </div>
+            </div>
+            <div className="col-12">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Benefits</label>
+              <input type="text" className="form-control rounded-3" name="benefits" value={editForm.benefits} onChange={handleEditChange} placeholder="e.g. Food, Transport" />
+            </div>
+            <div className="col-md-4">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Contact Person</label>
+              <input type="text" className="form-control rounded-3" name="contact_person" value={editForm.contact_person} onChange={handleEditChange} placeholder="Name" />
+            </div>
+            <div className="col-md-4">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Phone Number</label>
+              <input type="tel" className="form-control rounded-3" name="contact_phone" value={editForm.contact_phone} onChange={handleEditChange} placeholder="07X XXX XXXX" />
+            </div>
+            <div className="col-md-4">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Email Address</label>
+              <input type="email" className="form-control rounded-3" name="contact_email" value={editForm.contact_email} onChange={handleEditChange} placeholder="email@company.com" />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Application Deadline</label>
+              <input type="date" className="form-control rounded-3" name="deadline" value={editForm.deadline} onChange={handleEditChange} />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Required Documents</label>
+              <div className="d-flex flex-wrap gap-2 mt-1">
+                {['CV', 'NIC', 'Student ID'].map((doc) => (
+                  <button key={doc} type="button" className="d-flex align-items-center gap-2 px-3 py-2 rounded-3 fw-semibold" style={{ background: editForm.required_documents.includes(doc) ? '#7c3aed' : '#f8fafc', color: editForm.required_documents.includes(doc) ? '#fff' : '#475569', border: `1px solid ${editForm.required_documents.includes(doc) ? '#7c3aed' : '#e2e8f0'}`, cursor: 'pointer', fontSize: '0.85rem' }} onClick={() => handleEditDocToggle(doc)}>
+                    {editForm.required_documents.includes(doc) && <FaCheck size={12} />} {doc}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setEditTarget(null)}>Cancel</Button>
+          <Button variant="warning" onClick={handleUpdateJob} disabled={savingEdit}>
+            {savingEdit ? <><span className="spinner-border spinner-border-sm me-2"></span>Saving...</> : <><FaSave className="me-1" />Save Changes</>}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

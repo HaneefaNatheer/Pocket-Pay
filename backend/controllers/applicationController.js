@@ -173,10 +173,24 @@ const updateApplicationStatus = async (req, res) => {
 
     const student = await Student.findByPk(application.student_id);
     if (student) {
+      const statusMessage = status === 'accepted'
+        ? 'Congratulations! Your application has been accepted'
+        : status === 'rejected'
+          ? 'We are sorry, your application has been rejected'
+          : status === 'shortlisted'
+            ? 'Good news! You have been shortlisted'
+            : status === 'interview'
+              ? 'You have been invited for an interview'
+              : `Your application has been updated to "${status}"`;
+
+      const note = employer_notes && employer_notes.trim()
+        ? `\nEmployer's message: ${employer_notes}`
+        : '';
+
       await Notification.create({
         user_id: student.user_id,
         title: 'Application Update',
-        message: `Your application for "${job.title}" has been ${status || 'updated'}`,
+        message: `${statusMessage} for "${job.title}".${note}`,
         type: 'application',
         link: `/student/applied-jobs`,
       });

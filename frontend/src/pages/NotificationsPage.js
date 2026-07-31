@@ -13,7 +13,7 @@ const NotificationsPage = () => {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const res = await notificationService.getAll({ limit: 50 });
+      const res = await notificationService.getNotifications({ limit: 50 });
       setNotifications(res.data || []);
     } catch {
       toast.error('Failed to load notifications.');
