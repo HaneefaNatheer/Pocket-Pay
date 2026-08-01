@@ -52,4 +52,13 @@ const Report = sequelize.define('Report', {
   timestamps: true,
 });
 
+const User = require('./User');
+const Job = require('./Job');
+
+Report.belongsTo(User, { foreignKey: 'reporter_id', as: 'reporter' });
+Report.belongsTo(User, { foreignKey: 'reported_id', as: 'reportedUser' });
+Report.belongsTo(Job, { foreignKey: 'job_id', as: 'linkedJob' });
+User.hasMany(Report, { foreignKey: 'reporter_id', as: 'reportedReports' });
+User.hasMany(Report, { foreignKey: 'reported_id', as: 'reportsReceived' });
+
 module.exports = Report;

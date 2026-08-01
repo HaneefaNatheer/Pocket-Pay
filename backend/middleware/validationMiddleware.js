@@ -110,7 +110,7 @@ const validateProfile = [
     .trim()
     .isLength({ max: 100 }).withMessage('Name must be at most 100 characters.'),
   body('phone')
-    .optional()
+    .optional({ values: 'falsy' })
     .trim()
     .matches(/^\+?[\d\s\-()]{7,20}$/).withMessage('Must be a valid phone number.'),
   handleValidation,

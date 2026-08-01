@@ -10,6 +10,7 @@ const EmployerProfile = () => {
   const { user, setUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -23,6 +24,7 @@ const EmployerProfile = () => {
     company_website: '',
     company_address: '',
     industry: '',
+    company_size: '',
     company_description: '',
     business_registration: '',
   });
@@ -53,11 +55,13 @@ const EmployerProfile = () => {
         company_website: data.company_website || '',
         company_address: data.company_address || '',
         industry: data.industry || '',
+        company_size: data.company_size || '',
         company_description: data.company_description || '',
         business_registration: data.business_registration || '',
       });
+      setLoadError(false);
     } catch {
-      toast.error('Failed to load profile');
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -123,6 +127,25 @@ const EmployerProfile = () => {
             <div className="card border-0 shadow-sm">
               <div className="card-body text-center py-5">
                 <div className="spinner-border text-primary" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="container py-4">
+        <div className="row justify-content-center">
+          <div className="col-lg-8">
+            <div className="card border-0 shadow-sm">
+              <div className="card-body text-center py-5">
+                <h5 className="text-muted mb-3">Failed to load profile.</h5>
+                <button className="btn btn-primary rounded-3 px-4" onClick={() => { setLoading(true); loadProfile(); }}>
+                  Retry
+                </button>
               </div>
             </div>
           </div>
@@ -206,6 +229,17 @@ const EmployerProfile = () => {
                     <select className="form-select" name="industry" value={form.industry} onChange={handleChange} disabled={!editMode}>
                       <option value="">Select Industry</option>
                       {industries.map((i) => <option key={i} value={i}>{i}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="col-md-6">
+                  <label className="form-label small fw-semibold text-muted mb-1">Company Size</label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-light"><FaBuilding size={14} /></span>
+                    <select className="form-select" name="company_size" value={form.company_size} onChange={handleChange} disabled={!editMode}>
+                      <option value="">Select Size</option>
+                      {['1-10', '11-50', '51-200', '201-500', '500+'].map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                 </div>

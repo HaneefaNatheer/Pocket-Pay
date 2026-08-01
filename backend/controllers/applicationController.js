@@ -77,7 +77,7 @@ const getMyApplications = async (req, res) => {
       include: [{
         model: Job,
         as: 'job',
-        include: [{ model: Employer, as: 'employer', attributes: ['id', 'company_name', 'company_logo'] }],
+        include: [{ model: Employer, as: 'employer', attributes: ['id', 'company_name', 'company_logo', 'contact_person', 'company_phone', 'company_email'] }],
       }],
       order: [['applied_at', 'DESC']],
       limit,

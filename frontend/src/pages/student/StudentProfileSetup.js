@@ -72,14 +72,14 @@ const StudentProfileSetup = () => {
     try {
       await studentService.updateProfile({
         bio,
-        salaryMin: salaryMin || undefined,
-        salaryMax: salaryMax || undefined,
-        preferredLocation: preferredLocation || undefined,
+        preferred_salary_min: salaryMin === '' ? undefined : salaryMin,
+        preferred_salary_max: salaryMax === '' ? undefined : salaryMax,
+        preferred_location: preferredLocation || undefined,
       });
 
       for (const skill of selectedSkills) {
         try {
-          await studentService.addSkill({ name: skill, proficiency: 'intermediate' });
+          await studentService.addSkill({ skill_name: skill, proficiency: 'intermediate' });
         } catch (e) {
           // skill might already exist, ignore
         }
@@ -101,8 +101,7 @@ const StudentProfileSetup = () => {
       await loadUser();
       navigate('/student/dashboard');
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to save profile. You can complete this later.');
-      navigate('/student/dashboard');
+      toast.error(err?.response?.data?.message || 'Failed to save profile. Please try again.');
     } finally {
       setSaving(false);
     }

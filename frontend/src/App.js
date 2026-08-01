@@ -47,6 +47,7 @@ import NotificationsPage from './pages/NotificationsPage';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminProfile from './pages/admin/AdminProfile';
 import ManageStudents from './pages/admin/ManageStudents';
 import ManageEmployers from './pages/admin/ManageEmployers';
 import AdminManageJobs from './pages/admin/ManageJobs';
@@ -198,10 +199,11 @@ function AppContent() {
           <Route path="/employer/applicants/:jobId" element={<ProtectedRoute allowedRoles={['employer']}><ViewApplicants /></ProtectedRoute>} />
 
           {/* Shared Routes */}
-          <Route path="/notifications" element={<ProtectedRoute allowedRoles={['student', 'employer']}><NotificationsPage /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute allowedRoles={['student', 'employer', 'admin']}><NotificationsPage /></ProtectedRoute>} />
 
           {/* Admin Routes */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/profile" element={<ProtectedRoute allowedRoles={['admin']}><AdminProfile /></ProtectedRoute>} />
           <Route path="/admin/students" element={<ProtectedRoute allowedRoles={['admin']}><ManageStudents /></ProtectedRoute>} />
           <Route path="/admin/employers" element={<ProtectedRoute allowedRoles={['admin']}><ManageEmployers /></ProtectedRoute>} />
           <Route path="/admin/jobs" element={<ProtectedRoute allowedRoles={['admin']}><AdminManageJobs /></ProtectedRoute>} />

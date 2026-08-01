@@ -1,7 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
+const { uploadProfile } = require('../middleware/uploadMiddleware');
 const {
+  getProfile,
+  updateProfile,
+  uploadProfilePicture,
   getDashboardStats,
   getAllStudents,
   getAllEmployers,
@@ -23,6 +27,9 @@ const {
 router.use(authenticateToken, authorizeRoles('admin'));
 
 router.get('/dashboard', getDashboardStats);
+router.get('/profile', getProfile);
+router.put('/profile', updateProfile);
+router.post('/profile-picture', uploadProfile, uploadProfilePicture);
 router.get('/students', getAllStudents);
 router.get('/employers', getAllEmployers);
 router.put('/verify-employer/:id', verifyEmployer);

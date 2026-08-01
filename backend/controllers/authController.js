@@ -1,9 +1,12 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { Op } = require('sequelize');
 const User = require('../models/User');
 const Student = require('../models/Student');
 const Employer = require('../models/Employer');
+const Admin = require('../models/Admin');
+const { sendPasswordResetEmail } = require('../services/emailService');
 
 const generateTokens = (user) => {
   const accessToken = jwt.sign(
@@ -143,6 +146,77 @@ const login = async (req, res) => {
   }
 };
 
+const adminLogin = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Username and password are required' });
+    }
+
+    const user = await User.findOne({
+      where: {
+        [Op.or]: [
+          { email: username },
+          { name: username },
+          { phone: username },
+        ],
+      },
+    });
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid username or password' });
+    }
+
+    if (user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'This account does not have admin access' });
+    }
+
+    if (!user.is_active) {
+      return res.status(403).json({ success: false, message: 'Account has been deactivated' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid username or password' });
+    }
+
+    let adminRecord = await Admin.findOne({ where: { user_id: user.id } });
+    if (!adminRecord) {
+      adminRecord = await Admin.create({ user_id: user.id, role_level: 'super_admin' });
+    }
+
+    await user.update({ last_login: new Date() });
+
+    const { accessToken, refreshToken } = generateTokens(user);
+
+    res.cookie('token', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    const { password: _, ...userData } = user.toJSON();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Admin login successful',
+      data: {
+        user: { ...userData, role_level: adminRecord.role_level },
+        token: accessToken,
+        refreshToken,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 const logout = async (req, res) => {
   try {
     res.clearCookie('token');
@@ -168,6 +242,12 @@ const forgotPassword = async (req, res) => {
 
     const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
 
+    try {
+      await sendPasswordResetEmail(user, resetToken);
+    } catch (emailErr) {
+      console.error('Password reset email could not be sent:', emailErr.message);
+    }
+
     return res.status(200).json({
       success: true,
       message: 'If an account exists, a reset link has been sent',
@@ -185,6 +265,10 @@ const resetPassword = async (req, res) => {
 
     if (!newPassword) {
       return res.status(400).json({ success: false, message: 'New password is required' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters long' });
     }
 
     const user = await User.findOne({ where: { reset_token: token } });
@@ -261,10 +345,15 @@ const getMe = async (req, res) => {
       profile = await Employer.findOne({ where: { user_id: user.id } });
     }
 
+    let admin = null;
+    if (user.role === 'admin') {
+      admin = await Admin.findOne({ where: { user_id: user.id } });
+    }
+
     return res.status(200).json({
       success: true,
       message: 'User retrieved',
-      data: { ...user.toJSON(), profile },
+      data: { ...user.toJSON(), profile, admin },
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -274,6 +363,7 @@ const getMe = async (req, res) => {
 module.exports = {
   register,
   login,
+  adminLogin,
   logout,
   forgotPassword,
   resetPassword,

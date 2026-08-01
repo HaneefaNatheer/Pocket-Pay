@@ -30,6 +30,22 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', res.data.data.token);
     api.defaults.headers.common['Authorization'] = `Bearer ${res.data.data.token}`;
     setUser(res.data.data.user);
+    try {
+      const me = await api.get('/auth/me');
+      setUser(me.data.data);
+    } catch { /* keep login response user */ }
+    return res.data;
+  };
+
+  const adminLogin = async (username, password) => {
+    const res = await api.post('/auth/admin-login', { username, password });
+    localStorage.setItem('token', res.data.data.token);
+    api.defaults.headers.common['Authorization'] = `Bearer ${res.data.data.token}`;
+    setUser(res.data.data.user);
+    try {
+      const me = await api.get('/auth/me');
+      setUser(me.data.data);
+    } catch { /* keep login response user */ }
     return res.data;
   };
 
@@ -45,7 +61,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, loadUser, setUser }}>
+    <AuthContext.Provider value={{ user, loading, login, adminLogin, register, logout, loadUser, setUser }}>
       {children}
     </AuthContext.Provider>
   );

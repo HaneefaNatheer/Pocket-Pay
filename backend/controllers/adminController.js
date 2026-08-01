@@ -1,4 +1,5 @@
 const { Op } = require('sequelize');
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Student = require('../models/Student');
 const Employer = require('../models/Employer');
@@ -7,33 +8,92 @@ const Application = require('../models/Application');
 const Report = require('../models/Report');
 const Review = require('../models/Review');
 const Notification = require('../models/Notification');
-const sequelize = require('../config/database');
+const Admin = require('../models/Admin');
+
+const getProfile = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password', 'verification_token', 'reset_token', 'reset_token_expire'] },
+    });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const admin = await Admin.findOne({ where: { user_id: user.id } });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Admin profile retrieved',
+      data: { user, admin },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 const getDashboardStats = async (req, res) => {
   try {
-    const totalStudents = await Student.count();
-    const totalEmployers = await Employer.count();
-    const totalJobs = await Job.count();
-    const totalApplications = await Application.count();
+    const [totalStudents, totalEmployers, totalJobs, totalApplications] = await Promise.all([
+      Student.count(),
+      Employer.count(),
+      Job.count(),
+      Application.count(),
+    ]);
 
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const [recentUsers, recentJobs, topEmployers] = await Promise.all([
+      User.findAll({
+        attributes: ['id', 'name', 'email', 'role', 'createdAt'],
+        order: [['createdAt', 'DESC']],
+        limit: 5,
+      }),
+      Job.findAll({
+        attributes: ['id', 'title', 'status', 'createdAt'],
+        order: [['createdAt', 'DESC']],
+        limit: 5,
+      }),
+      Employer.findAll({
+        attributes: ['id', 'company_name', 'company_logo', 'total_jobs_posted', 'is_verified'],
+        include: [{ model: User, as: 'user', attributes: ['name', 'email'] }],
+        order: [['total_jobs_posted', 'DESC']],
+        limit: 5,
+      }),
+    ]);
 
-    const monthlyData = await User.findAll({
-      attributes: [
-        [sequelize.literal("strftime('%Y-%m', created_at)"), 'month'],
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
-      ],
-      where: { createdAt: { [Op.gte]: sixMonthsAgo } },
-      group: [sequelize.literal("strftime('%Y-%m', created_at)")],
-      order: [sequelize.literal("strftime('%Y-%m', created_at) ASC")],
-      raw: true,
-    });
+    const recentActivities = [
+      ...recentUsers.map((u) => ({
+        id: u.id,
+        type: u.role === 'student' ? 'student' : u.role === 'employer' ? 'employer' : 'user',
+        message: `${u.name} registered`,
+        createdAt: u.createdAt,
+      })),
+      ...recentJobs.map((j) => ({
+        id: j.id,
+        type: 'job',
+        message: `New job posted: ${j.title}`,
+        createdAt: j.createdAt,
+      })),
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 10);
+
+    const topEmployerData = topEmployers.map((e) => ({
+      id: e.id,
+      companyName: e.company_name,
+      companyLogo: e.company_logo,
+      jobsPosted: e.total_jobs_posted || 0,
+      isVerified: e.is_verified,
+      averageRating: 0,
+    }));
 
     return res.status(200).json({
       success: true,
       message: 'Dashboard stats retrieved',
-      data: { totalStudents, totalEmployers, totalJobs, totalApplications, monthlyGrowth: monthlyData },
+      data: {
+        totalStudents,
+        totalEmployers,
+        totalJobs,
+        totalApplications,
+        recentActivities,
+        topEmployers: topEmployerData,
+      },
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -217,21 +277,48 @@ const getAllReports = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
+    const { status } = req.query;
+
+    const where = {};
+    if (status && status !== 'all') where.status = status;
 
     const { count, rows: reports } = await Report.findAndCountAll({
+      where,
       include: [
         { model: User, as: 'reporter', attributes: ['id', 'name', 'email'] },
+        { model: User, as: 'reportedUser', attributes: ['id', 'name', 'email'] },
+        {
+          model: Job,
+          as: 'linkedJob',
+          attributes: ['id', 'title', 'status'],
+          include: [{ model: Employer, as: 'employer', attributes: ['id', 'company_name'] }],
+        },
       ],
       order: [['createdAt', 'DESC']],
       limit,
       offset,
+      distinct: true,
     });
+
+    const counts = {
+      all: count,
+      pending: await Report.count({ where: { status: 'pending' } }),
+      investigating: await Report.count({ where: { status: 'investigating' } }),
+      resolved: await Report.count({ where: { status: 'resolved' } }),
+      dismissed: await Report.count({ where: { status: 'dismissed' } }),
+    };
 
     return res.status(200).json({
       success: true,
       message: 'Reports retrieved',
-      data: reports,
-      pagination: { page, limit, total: count, totalPages: Math.ceil(count / limit) },
+      data: {
+        reports,
+        counts,
+        total: count,
+        totalPages: Math.ceil(count / limit) || 1,
+        page,
+        limit,
+      },
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -245,7 +332,7 @@ const updateReportStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Report not found' });
     }
 
-    const { status, admin_notes } = req.body;
+    const { status, admin_notes, adminNotes } = req.body;
     const validStatuses = ['pending', 'investigating', 'resolved', 'dismissed'];
     if (status && !validStatuses.includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid status' });
@@ -253,7 +340,8 @@ const updateReportStatus = async (req, res) => {
 
     const updates = {};
     if (status) updates.status = status;
-    if (admin_notes !== undefined) updates.admin_notes = admin_notes;
+    const notes = admin_notes !== undefined ? admin_notes : adminNotes;
+    if (notes !== undefined) updates.admin_notes = notes;
 
     await report.update(updates);
 
@@ -475,7 +563,75 @@ const getSystemLogs = async (req, res) => {
   }
 };
 
+const updateProfile = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const { name, phone, current_password, new_password } = req.body;
+
+    if (new_password) {
+      if (!current_password) {
+        return res.status(400).json({ success: false, message: 'Current password is required to change password' });
+      }
+      const isMatch = await bcrypt.compare(current_password, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ success: false, message: 'Current password is incorrect' });
+      }
+    }
+
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (phone !== undefined) updates.phone = phone;
+    if (new_password) updates.password = await bcrypt.hash(new_password, 10);
+
+    await user.update(updates);
+
+    const updated = await User.findByPk(user.id, {
+      attributes: { exclude: ['password', 'verification_token', 'reset_token', 'reset_token_expire'] },
+    });
+    const admin = await Admin.findOne({ where: { user_id: user.id } });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: { user: updated, admin },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const uploadProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    const filePath = `uploads/profiles/${req.file.filename}`;
+    await User.update({ profile_picture: filePath }, { where: { id: req.user.id } });
+
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password', 'verification_token', 'reset_token', 'reset_token_expire'] },
+    });
+    const admin = await Admin.findOne({ where: { user_id: req.user.id } });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile picture updated',
+      data: { user, admin },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
+  getProfile,
+  updateProfile,
+  uploadProfilePicture,
   getDashboardStats,
   getAllStudents,
   getAllEmployers,

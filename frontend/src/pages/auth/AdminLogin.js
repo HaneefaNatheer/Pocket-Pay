@@ -6,17 +6,16 @@ import { useAuth } from '../../context/AuthContext';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { adminLogin } = useAuth();
 
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
   const validate = () => {
     const errs = {};
-    if (!formData.email.trim()) errs.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) errs.email = 'Email is invalid';
+    if (!formData.username.trim()) errs.username = 'Username or email is required';
     if (!formData.password) errs.password = 'Password is required';
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -33,7 +32,7 @@ const AdminLogin = () => {
     if (!validate()) return;
     setLoading(true);
     try {
-      await login(formData.email, formData.password, 'admin');
+      await adminLogin(formData.username.trim(), formData.password);
       toast.success('Admin login successful!');
       navigate('/admin/dashboard');
     } catch (err) {
@@ -64,18 +63,18 @@ const AdminLogin = () => {
 
                 <form onSubmit={handleSubmit} noValidate>
                   <div className="mb-3">
-                    <label className="form-label fw-semibold">Email Address</label>
+                    <label className="form-label fw-semibold">Username or Email</label>
                     <div className="input-group">
                       <span className="input-group-text bg-dark border-end-0 text-white"><FaEnvelope /></span>
                       <input
-                        type="email"
-                        name="email"
-                        className={`form-control border-start-0 ${errors.email ? 'is-invalid' : ''}`}
-                        placeholder="admin@platform.com"
-                        value={formData.email}
+                        type="text"
+                        name="username"
+                        className={`form-control border-start-0 ${errors.username ? 'is-invalid' : ''}`}
+                        placeholder="admin or admin@admin.com"
+                        value={formData.username}
                         onChange={handleChange}
                       />
-                      {errors.email && <div className="invalid-feedback">{errors.email}</div>}
+                      {errors.username && <div className="invalid-feedback">{errors.username}</div>}
                     </div>
                   </div>
 

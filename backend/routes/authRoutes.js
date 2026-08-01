@@ -6,6 +6,7 @@ const { validateRegistration, validateLogin } = require('../middleware/validatio
 
 router.post('/register', validateRegistration, authController.register);
 router.post('/login', validateLogin, authController.login);
+router.post('/admin-login', authController.adminLogin);
 router.post('/logout', authController.logout);
 router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password/:token', authController.resetPassword);

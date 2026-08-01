@@ -8,6 +8,7 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [resetLink, setResetLink] = useState('');
   const [error, setError] = useState('');
 
   const validate = () => {
@@ -22,7 +23,8 @@ const ForgotPassword = () => {
     if (!validate()) return;
     setLoading(true);
     try {
-      await authService.forgotPassword(email);
+      const res = await authService.forgotPassword(email);
+      setResetLink(res?.data?.data?.resetLink || '');
       setSent(true);
       toast.success('Reset link sent to your email!');
     } catch (err) {
@@ -47,6 +49,12 @@ const ForgotPassword = () => {
                 <p className="text-muted mb-4">
                   We've sent a password reset link to <strong>{email}</strong>. Please check your inbox and follow the instructions.
                 </p>
+                {resetLink && (
+                  <div className="text-start bg-light rounded-3 p-3 mb-4">
+                    <div className="small fw-semibold text-muted mb-2">Demo mode — no email configured. Use this link:</div>
+                    <a href={resetLink} className="small text-primary text-break" style={{ wordBreak: 'break-all' }}>{resetLink}</a>
+                  </div>
+                )}
                 <Link to="/login" className="btn btn-primary rounded-3 px-4">Back to Login</Link>
               </div>
             </div>

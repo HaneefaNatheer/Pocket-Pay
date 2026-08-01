@@ -72,11 +72,11 @@ const StudentProfile = () => {
     setSaving(true);
     try {
       await api.put('/students/profile', {
-        name: form.name, phone: form.phone, university: form.university, degree: form.degree,
-        year_of_study: form.year_of_study, bio: form.bio, address: form.address,
+        name: form.name, phone: form.phone || undefined, university: form.university, degree: form.degree,
+        year_of_study: form.year_of_study === '' ? null : form.year_of_study, bio: form.bio, address: form.address,
         permanent_address: form.permanent_address, current_address: form.current_address,
-        nic: form.nic, preferred_salary_min: form.preferred_salary_min || null,
-        preferred_salary_max: form.preferred_salary_max || null, preferred_location: form.preferred_location,
+        nic: form.nic, preferred_salary_min: form.preferred_salary_min === '' ? null : form.preferred_salary_min,
+        preferred_salary_max: form.preferred_salary_max === '' ? null : form.preferred_salary_max, preferred_location: form.preferred_location,
       });
       toast.success('Profile updated!');
       setEditMode(false);
@@ -137,6 +137,7 @@ const StudentProfile = () => {
       .filter(f => {
         if (f === 'cv_file') return !!profile?.cv_file;
         if (f === 'name') return !!profile?.user?.name;
+        if (f === 'phone') return !!profile?.user?.phone;
         return !!profile[f];
       }).length / 7 * 100
   ) : 0;

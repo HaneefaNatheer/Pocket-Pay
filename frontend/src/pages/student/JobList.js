@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { jobService } from '../../services/jobService';
-import { BsSearch, BsFilter, BsSortDown, BsGeoAlt, BsClock, BsBuilding, BsBriefcase, BsCashCoin, BsXLg } from 'react-icons/bs';
+import { applicationService } from '../../services/applicationService';
+import { useAuth } from '../../context/AuthContext';
+import { BsSearch, BsFilter, BsSortDown, BsGeoAlt, BsClock, BsBuilding, BsBriefcase, BsCashCoin, BsXLg, BsCheckCircle, BsPersonLock } from 'react-icons/bs';
 import { toast } from 'react-toastify';
+import { Modal, Button } from 'react-bootstrap';
+import api from '../../services/api';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const SALARY_SUFFIX = { hourly: '/hr', daily: '/day', weekly: '/wk', monthly: '/mo', fixed: '' };
@@ -57,7 +61,7 @@ const avatarColor = (name) => {
   return AVATAR_COLORS[hash % AVATAR_COLORS.length];
 };
 
-const JobCard = ({ job }) => {
+const JobCard = ({ job, applied, onApply }) => {
   const salary = formatSalary(job);
   const typeStyle = TYPE_STYLES[job.type] || TYPE_STYLES.other;
   return (
@@ -121,13 +125,27 @@ const JobCard = ({ job }) => {
             </div>
           )}
 
-          <div className="d-flex justify-content-between align-items-center pt-3 mt-auto border-top">
+          <div className="d-flex justify-content-between align-items-center pt-3 mt-auto border-top gap-2">
             <small className="text-muted d-inline-flex align-items-center gap-1">
               <BsClock /> {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'New'}
             </small>
-            <Link to={`/jobs/${job.id}`} className="btn btn-sm px-3 fw-semibold text-white" style={{ backgroundColor: '#0d6efd', borderRadius: 8 }}>
-              View Details
-            </Link>
+            <div className="d-flex gap-2">
+              <button
+                className="btn btn-sm px-3 fw-semibold"
+                style={{
+                  borderRadius: 8,
+                  backgroundColor: applied ? '#e8f7ef' : '#0d6efd',
+                  color: applied ? '#15803d' : '#fff',
+                  border: applied ? '1.5px solid #22c55e' : 'none',
+                }}
+                onClick={() => onApply(job)}
+              >
+                {applied ? <><BsCheckCircle className="me-1" />Applied</> : 'Apply'}
+              </button>
+              <Link to={`/jobs/${job.id}`} className="btn btn-sm px-3 fw-semibold" style={{ borderRadius: 8, border: '1.5px solid #e2e8f0', color: '#475569' }}>
+                Details
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -158,9 +176,12 @@ const JobSkeleton = () => (
 );
 
 const JobList = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
   const [category, setCategory] = useState('');
   const [jobType, setJobType] = useState('');
   const [salaryMax, setSalaryMax] = useState(200000);
@@ -171,6 +192,12 @@ const JobList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const [appliedJobs, setAppliedJobs] = useState([]);
+  const [applying, setApplying] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showCvModal, setShowCvModal] = useState(false);
+  const [pendingJobId, setPendingJobId] = useState(null);
+  const [studentProfile, setStudentProfile] = useState(null);
 
   const categories = ['Technology', 'Marketing', 'Finance', 'Design', 'Engineering', 'Healthcare', 'Education', 'Sales'];
   const availableSkills = ['JavaScript', 'Python', 'React', 'Node.js', 'Java', 'C++', 'SQL', 'HTML/CSS', 'TypeScript', 'AWS'];
@@ -209,6 +236,64 @@ const JobList = () => {
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
+
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || '';
+    if (urlSearch !== search) {
+      setSearch(urlSearch);
+      setPage(1);
+    }
+  }, [searchParams, search]);
+
+  useEffect(() => {
+    if (user?.role !== 'student') return;
+    api.get('/students/profile')
+      .then((res) => setStudentProfile(res.data?.data || null))
+      .catch(() => setStudentProfile(null));
+  }, [user]);
+
+  useEffect(() => {
+    if (user?.role !== 'student') return;
+    applicationService.getMyApplications()
+      .then((res) => {
+        const data = res.data?.data || res.data || [];
+        setAppliedJobs(data.map((a) => a.job_id || a.jobId).filter(Boolean));
+      })
+      .catch(() => {});
+  }, [user]);
+
+  const handleApply = async (job) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (user.role !== 'student') {
+      toast.error('Only students can apply for jobs. Please login as a student.');
+      return;
+    }
+    if (appliedJobs.includes(job.id)) return;
+    if (!studentProfile?.cv_file) {
+      setPendingJobId(job.id);
+      setShowCvModal(true);
+      return;
+    }
+    setApplying(true);
+    try {
+      await applicationService.apply({ job_id: job.id });
+      setAppliedJobs((prev) => [...prev, job.id]);
+      toast.success('Application submitted! Employer will be notified.');
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Failed to apply. Try again.';
+      toast.error(msg);
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const handleAuthRedirect = (path) => {
+    setShowAuthModal(false);
+    navigate(path);
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -391,7 +476,7 @@ const JobList = () => {
               <>
                 <div className="row">
                   {jobs.map((job) => (
-                    <JobCard key={job.id} job={job} />
+                    <JobCard key={job.id} job={job} applied={appliedJobs.includes(job.id)} onApply={handleApply} />
                   ))}
                 </div>
                 {totalPages > 1 && (
@@ -423,6 +508,51 @@ const JobList = () => {
           </div>
         </div>
       </div>
+
+      <Modal show={showAuthModal} onHide={() => setShowAuthModal(false)} centered>
+        <Modal.Body className="text-center py-5 px-4">
+          <div className="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style={{ width: 70, height: 70, background: '#fff7ed' }}>
+            <BsPersonLock size={30} style={{ color: '#f97316' }} />
+          </div>
+          <h5 className="fw-bold mb-2">Login or Register Required</h5>
+          <p className="text-muted mb-4" style={{ fontSize: '0.9rem' }}>
+            You need to login or register to apply for jobs.
+            <br />Create a free student account in just a minute.
+          </p>
+          <div className="d-flex flex-column gap-2 justify-content-center">
+            <Button variant="primary" size="lg" className="fw-semibold" onClick={() => handleAuthRedirect('/login')}>
+              Login
+            </Button>
+            <Button variant="outline-primary" size="lg" className="fw-semibold" onClick={() => handleAuthRedirect('/register/student')}>
+              Register as Student
+            </Button>
+            <Button variant="link" className="text-muted" onClick={() => setShowAuthModal(false)}>
+              Maybe later
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      <Modal show={showCvModal} onHide={() => { setShowCvModal(false); setPendingJobId(null); }} centered>
+        <Modal.Body className="text-center py-5 px-4">
+          <div className="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style={{ width: 70, height: 70, background: '#fef2f2' }}>
+            <BsBriefcase size={30} style={{ color: '#ef4444' }} />
+          </div>
+          <h5 className="fw-bold mb-2">CV Required</h5>
+          <p className="text-muted mb-4" style={{ fontSize: '0.9rem' }}>
+            You need to upload your CV before applying to jobs.
+            <br />Add your CV in your profile settings.
+          </p>
+          <div className="d-flex gap-2 justify-content-center">
+            <Button variant="outline-secondary" onClick={() => { setShowCvModal(false); setPendingJobId(null); }}>
+              Later
+            </Button>
+            <Link to="/student/profile" className="btn btn-primary fw-semibold px-4" onClick={() => { setShowCvModal(false); setPendingJobId(null); }}>
+              Go to Profile
+            </Link>
+          </div>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };

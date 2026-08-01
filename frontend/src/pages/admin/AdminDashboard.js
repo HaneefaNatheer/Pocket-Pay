@@ -42,9 +42,9 @@ ChartJS.register(
   Filler
 );
 
-const StatsCard = ({ icon, label, value, color }) => (
-  <div className="col-12 col-sm-6 col-xl-2 mb-4">
-    <div className="card border-0 shadow-sm h-100">
+const StatsCard = ({ icon, label, value, color, to }) => {
+  const content = (
+    <div className="card border-0 shadow-sm h-100" style={to ? { cursor: 'pointer' } : undefined}>
       <div className="card-body d-flex align-items-center">
         <div
           className="rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0"
@@ -56,10 +56,25 @@ const StatsCard = ({ icon, label, value, color }) => (
           <h5 className="mb-0 fw-bold text-truncate">{value}</h5>
           <small className="text-muted">{label}</small>
         </div>
+        {to && (
+          <BsChevronRight size={12} className="text-muted ms-auto flex-shrink-0" />
+        )}
       </div>
     </div>
-  </div>
-);
+  );
+
+  if (!to) {
+    return <div className="col-12 col-sm-6 col-xl-2 mb-4">{content}</div>;
+  }
+
+  return (
+    <div className="col-12 col-sm-6 col-xl-2 mb-4">
+      <Link to={to} className="text-decoration-none d-block" title={label}>
+        {content}
+      </Link>
+    </div>
+  );
+};
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -90,12 +105,12 @@ const AdminDashboard = () => {
   const stats = useMemo(() => {
     if (!analytics) return [];
     return [
-      { icon: <BsPeople size={22} color="#0d6efd" />, label: 'Total Students', value: analytics.totalStudents || 0, color: '#0d6efd' },
-      { icon: <BsBuilding size={22} color="#198754" />, label: 'Total Employers', value: analytics.totalEmployers || 0, color: '#198754' },
-      { icon: <BsBriefcase size={22} color="#6f42c1" />, label: 'Total Jobs', value: analytics.totalJobs || 0, color: '#6f42c1' },
-      { icon: <BsFileEarmarkText size={22} color="#fd7e14" />, label: 'Total Applications', value: analytics.totalApplications || 0, color: '#fd7e14' },
-      { icon: <BsPersonCheck size={22} color="#0dcaf0" />, label: 'Active Users (30d)', value: analytics.activeUsers || 0, color: '#0dcaf0' },
-      { icon: <BsGraphUp size={22} color="#dc3545" />, label: 'Monthly Growth', value: `${analytics.monthlyGrowth || 0}%`, color: '#dc3545' },
+      { icon: <BsPeople size={22} color="#0d6efd" />, label: 'Total Students', value: analytics.totalStudents || 0, color: '#0d6efd', to: '/admin/students' },
+      { icon: <BsBuilding size={22} color="#198754" />, label: 'Total Employers', value: analytics.totalEmployers || 0, color: '#198754', to: '/admin/employers' },
+      { icon: <BsBriefcase size={22} color="#6f42c1" />, label: 'Total Jobs', value: analytics.totalJobs || 0, color: '#6f42c1', to: '/admin/jobs' },
+      { icon: <BsFileEarmarkText size={22} color="#fd7e14" />, label: 'Total Applications', value: analytics.totalApplications || 0, color: '#fd7e14', to: '/admin/jobs' },
+      { icon: <BsPersonCheck size={22} color="#0dcaf0" />, label: 'Active Users (30d)', value: analytics.activeUsers || 0, color: '#0dcaf0', to: '/admin/logs' },
+      { icon: <BsGraphUp size={22} color="#dc3545" />, label: 'Monthly Growth', value: `${analytics.monthlyGrowth || 0}%`, color: '#dc3545', to: '/admin/logs' },
     ];
   }, [analytics]);
 

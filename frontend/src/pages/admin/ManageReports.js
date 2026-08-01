@@ -24,6 +24,22 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 const ITEMS_PER_PAGE = 10;
 
+const normalizeReport = (r) => ({
+  ...r,
+  id: r.id,
+  reporterName: r.reporter?.name,
+  reporterEmail: r.reporter?.email,
+  reporter: r.reporter,
+  reportedUserName: r.reportedUser?.name,
+  reportedUserEmail: r.reportedUser?.email,
+  reportedUser: r.reportedUser,
+  linkedJob: r.linkedJob
+    ? { ...r.linkedJob, employerName: r.linkedJob.employer?.company_name }
+    : null,
+  adminNotes: r.admin_notes,
+  statusHistory: [],
+});
+
 const typeColors = {
   fake_job: 'danger',
   scam: 'danger',
@@ -79,7 +95,7 @@ const ManageReports = () => {
       const res = await adminService.getReports(params);
       const data = res.data?.data || res.data || {};
       const reportList = Array.isArray(data) ? data : data.reports || data.results || [];
-      setReports(reportList);
+      setReports(reportList.map(normalizeReport));
       setTotalPages(data.totalPages || data.pages || Math.ceil((data.total || 0) / ITEMS_PER_PAGE) || 1);
       if (data.counts) {
         setCounts(data.counts);
@@ -96,20 +112,10 @@ const ManageReports = () => {
     }
   };
 
-  const handleViewReport = async (report) => {
+  const handleViewReport = (report) => {
     setShowReportModal(true);
-    setLoadingReport(true);
-    try {
-      const res = await adminService.getReports({ id: report._id });
-      const data = res.data?.data || res.data || report;
-      setSelectedReport(data);
-      setAdminNotes(data.adminNotes || data.adminNotes === 0 ? data.adminNotes : '');
-    } catch {
-      setSelectedReport(report);
-      setAdminNotes(report.adminNotes || '');
-    } finally {
-      setLoadingReport(false);
-    }
+    setSelectedReport(normalizeReport(report));
+    setAdminNotes(normalizeReport(report).adminNotes || '');
   };
 
   const handleStatusUpdate = async (reportId, newStatus) => {
@@ -118,9 +124,9 @@ const ManageReports = () => {
       await adminService.updateReport(reportId, { status: newStatus });
       toast.success(`Report status updated to "${newStatus}".`);
       setReports((prev) =>
-        prev.map((r) => (r._id === reportId ? { ...r, status: newStatus } : r))
+        prev.map((r) => (r.id === reportId ? { ...r, status: newStatus } : r))
       );
-      if (selectedReport?._id === reportId) {
+      if (selectedReport?.id === reportId) {
         setSelectedReport((prev) => prev ? { ...prev, status: newStatus } : prev);
       }
     } catch (err) {
@@ -253,7 +259,7 @@ const ManageReports = () => {
                 </thead>
                 <tbody>
                   {reports.map((report) => (
-                    <tr key={report._id}>
+                    <tr key={report.id}>
                       <td>
                         <div className="d-flex align-items-center">
                           <BsPersonExclamation className="text-muted me-2" />
@@ -294,7 +300,7 @@ const ManageReports = () => {
                             className="form-select form-select-sm"
                             style={{ width: 'auto', fontSize: 12 }}
                             value={report.status || 'pending'}
-                            onChange={(e) => handleStatusUpdate(report._id, e.target.value)}
+                            onChange={(e) => handleStatusUpdate(report.id, e.target.value)}
                             disabled={updatingStatus}
                           >
                             {['pending', 'investigating', 'resolved', 'dismissed'].map((s) => (
@@ -338,7 +344,7 @@ const ManageReports = () => {
             <div className="row g-4">
               <div className="col-12">
                 <div className="d-flex flex-wrap justify-content-between align-items-start">
-                  <h6 className="fw-bold mb-0">Report #{selectedReport._id?.slice(-6) || 'N/A'}</h6>
+                  <h6 className="fw-bold mb-0">Report #{selectedReport.id || 'N/A'}</h6>
                   <div className="d-flex gap-2">
                     <Badge bg={typeColors[selectedReport.type] || 'secondary'}>
                       {typeLabels[selectedReport.type] || selectedReport.type || 'N/A'}
@@ -453,7 +459,7 @@ const ManageReports = () => {
                     <div className="mt-2 text-end">
                       <button
                         className="btn btn-primary btn-sm"
-                        onClick={() => handleSaveNotes(selectedReport._id)}
+                        onClick={() => handleSaveNotes(selectedReport.id)}
                         disabled={updatingStatus}
                       >
                         {updatingStatus ? (
@@ -475,7 +481,7 @@ const ManageReports = () => {
                         <button
                           key={s}
                           className={`btn btn-sm ${selectedReport.status === s ? `btn-${statusColors[s]}` : `btn-outline-${statusColors[s]}`}`}
-                          onClick={() => handleStatusUpdate(selectedReport._id, s)}
+                          onClick={() => handleStatusUpdate(selectedReport.id, s)}
                           disabled={updatingStatus || selectedReport.status === s}
                         >
                           {s.charAt(0).toUpperCase() + s.slice(1)}

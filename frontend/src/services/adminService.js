@@ -2,6 +2,9 @@ import api from './api';
 
 export const adminService = {
   getDashboard: () => api.get('/admin/dashboard'),
+  getProfile: () => api.get('/admin/profile'),
+  updateProfile: (data) => api.put('/admin/profile', data),
+  uploadProfilePicture: (formData) => api.post('/admin/profile-picture', formData),
   getStudents: (params) => api.get('/admin/students', { params }),
   getEmployers: (params) => api.get('/admin/employers', { params }),
   verifyEmployer: (id) => api.put(`/admin/verify-employer/${id}`),

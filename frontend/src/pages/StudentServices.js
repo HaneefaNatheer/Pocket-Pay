@@ -209,13 +209,14 @@ export default function StudentServices() {
 
   const [toastMsg, setToastMsg] = useState(null);
   const [showCvModal, setShowCvModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingJobId, setPendingJobId] = useState(null);
   const [studentProfile, setStudentProfile] = useState(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await api.get('/student/profile');
+        const res = await api.get('/students/profile');
         setStudentProfile(res.data?.data || null);
       } catch {}
     };
@@ -224,6 +225,15 @@ export default function StudentServices() {
 
   const toggleApply = async (id) => {
     if (appliedJobs.includes(id)) return;
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (user.role !== 'student') {
+      setToastMsg({ type: 'error', text: 'Only students can apply for jobs. Please login as a student.' });
+      setTimeout(() => setToastMsg(null), 4000);
+      return;
+    }
     if (!studentProfile?.cv_file) {
       setPendingJobId(id);
       setShowCvModal(true);
@@ -709,6 +719,31 @@ export default function StudentServices() {
           </AnimSection>
         </div>
       </section>
+
+      {/* Login / Register Required Modal */}
+      <Modal show={showAuthModal} onHide={() => setShowAuthModal(false)} centered>
+        <Modal.Body className="text-center py-5 px-4">
+          <div className="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style={{ width: 70, height: 70, background: '#fff7ed' }}>
+            <FaLock size={30} style={{ color: '#f97316' }} />
+          </div>
+          <h5 className="fw-bold mb-2">Login or Register Required</h5>
+          <p className="text-muted mb-4" style={{ fontSize: '0.9rem' }}>
+            You need to login or register to apply for jobs.
+            <br />Create a free student account in just a minute.
+          </p>
+          <div className="d-flex flex-column gap-2 justify-content-center">
+            <Button variant="primary" size="lg" className="fw-semibold" onClick={() => { setShowAuthModal(false); navigate('/login'); }}>
+              Login
+            </Button>
+            <Button variant="outline-primary" size="lg" className="fw-semibold" onClick={() => { setShowAuthModal(false); navigate('/register/student'); }}>
+              Register as Student
+            </Button>
+            <Button variant="link" className="text-muted" onClick={() => setShowAuthModal(false)}>
+              Maybe later
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
 
       {/* CV Required Modal */}
       <Modal show={showCvModal} onHide={handleCvModalClose} centered>

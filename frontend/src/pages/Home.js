@@ -233,7 +233,7 @@ export default function Home() {
                 <span className="text-gradient">Part-Time Jobs</span>
               </h1>
               <p className="hero-subtitle mb-4">
-                Shop assistant, delivery rider, cashier, waiter, data entry — connect with trusted employers near you.
+                Earn while you study — trusted daily-wage &amp; part-time gigs from verified employers near you.
               </p>
               <form onSubmit={handleSearch} className="hero-search mx-auto mb-4">
                 <div className="input-group input-group-lg shadow-lg">

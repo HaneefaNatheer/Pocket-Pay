@@ -43,6 +43,8 @@ const Navbar = () => {
       .slice(0, 2);
   };
 
+  const avatarSrc = user?.profile_picture || user?.profile?.company_logo || null;
+
   const navLinkClass = ({ isActive }) =>
     `pp-nav-link ${isActive ? 'active' : ''}`;
 
@@ -87,8 +89,8 @@ const Navbar = () => {
                 <div className="pp-profile-trigger-wrapper" ref={dotRef}>
                   <button className="pp-profile-trigger" onClick={() => setDotOpen(!dotOpen)}>
                     <div className="pp-profile-avatar">
-                      {user?.profile_picture ? (
-                        <img src={`http://localhost:5000/${user.profile_picture}`} alt={user.name} />
+                      {avatarSrc ? (
+                        <img src={`http://localhost:5000/${avatarSrc}`} alt={user.name} />
                       ) : (
                         <span>{getInitials(user?.name)}</span>
                       )}
@@ -103,8 +105,8 @@ const Navbar = () => {
                     <div className="pp-dot-dropdown shadow-lg">
                       <div className="pp-dot-header">
                         <div className="pp-dot-avatar">
-                          {user?.profile_picture ? (
-                            <img src={`http://localhost:5000/${user.profile_picture}`} alt={user.name} />
+                          {avatarSrc ? (
+                            <img src={`http://localhost:5000/${avatarSrc}`} alt={user.name} />
                           ) : (
                             <span>{getInitials(user?.name)}</span>
                           )}
